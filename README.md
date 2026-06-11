@@ -36,13 +36,13 @@ zenodo-cli is the first CLI built on the new InvenioRDM API (`/api/records`).
 
 | Tool | Language | Stars | Last Updated | API Version | Upload Works | CLI | Status |
 |------|----------|-------|--------------|-------------|-------------|-----|--------|
-| **zenodo-cli** | Go | -- | 2026-06 | InvenioRDM (new) | Yes | Yes | Active |
-| zenodo-client (cthoyt) | Python | 45 | 2026-04 | Mixed (old+new) | No | Yes | Upload broken |
-| zenodo (cheminfo) | Node.js | -- | 2026-04 | InvenioRDM (new) | Yes | No | Library only |
-| zenodraft | Node.js | 8 | 2024-04 | Old (deprecated) | No | Yes | 19 open issues |
-| zotzen-lib | Node.js | 3 | 2023-05 | Old (deprecated) | No | Yes | Unmaintained |
-| zenodo-lib | Node.js | 2 | 2024-02 | Old (deprecated) | No | No | Unmaintained |
-| zenodo-cli (opendeved) | Node.js | 1 | 2021-01 | Old (deprecated) | No | Yes | Deprecated |
+| **[zenodo-cli](https://github.com/thedavidweng/zenodo-cli)** | Go | -- | 2026-06 | InvenioRDM (new) | Yes | Yes | Active |
+| [zenodo-client](https://github.com/cthoyt/zenodo-client) (cthoyt) | Python | 45 | 2026-04 | Mixed (old+new) | No | Yes | Upload broken |
+| [zenodo](https://github.com/cheminfo/zenodo) (cheminfo) | Node.js | -- | 2026-04 | InvenioRDM (new) | Yes | No | Library only |
+| [zenodraft](https://github.com/zenodraft/zenodraft) | Node.js | 8 | 2024-04 | Old (deprecated) | No | Yes | 19 open issues |
+| [zotzen-lib](https://github.com/OpenDevEd/zotzen-lib) | Node.js | 3 | 2023-05 | Old (deprecated) | No | Yes | Unmaintained |
+| [zenodo-lib](https://github.com/OpenDevEd/zenodo-lib) | Node.js | 2 | 2024-02 | Old (deprecated) | No | No | Unmaintained |
+| [zenodo-cli](https://github.com/OpenDevEd/zenodo-cli) (opendeved) | Node.js | 1 | 2021-01 | Old (deprecated) | No | Yes | Deprecated |
 
 **Key points:**
 - `zenodo-client` (Python) references both old and new APIs but file upload uses the deprecated endpoint and fails.
