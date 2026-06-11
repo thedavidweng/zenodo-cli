@@ -1,0 +1,6 @@
+bin/
+dist/
+*.tmp
+zenodo
+.claude/
+.env

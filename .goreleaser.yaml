@@ -1,0 +1,59 @@
+version: 2
+
+builds:
+  - main: ./cmd/zenodo
+    binary: zenodo
+    ldflags:
+      - -s -w
+      - -X github.com/thedavidweng/zenodo-cli/internal/cli.Version={{.Version}}
+      - -X github.com/thedavidweng/zenodo-cli/internal/cli.Commit={{.Commit}}
+      - -X github.com/thedavidweng/zenodo-cli/internal/cli.Date={{.Date}}
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+
+archives:
+  - format: tar.gz
+    format_overrides:
+      - goos: windows
+        format: zip
+
+checksum:
+  name_template: "checksums.txt"
+  algorithm: sha256
+
+changelog:
+  sort: asc
+  groups:
+    - title: Features
+      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
+      order: 0
+    - title: "Bug fixes"
+      regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
+      order: 1
+    - title: "Documentation"
+      regexp: '^.*?docs(\([[:word:]]+\))??!?:.+$'
+      order: 2
+
+release:
+  github:
+    owner: thedavidweng
+    name: zenodo-cli
+
+signs:
+  - cmd: cosign
+    artifacts: checksum
+
+brews:
+  - repository:
+      owner: thedavidweng
+      name: homebrew-tap
+
+scoops:
+  - repository:
+      owner: thedavidweng
+      name: scoop-bucket

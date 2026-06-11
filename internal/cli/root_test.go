@@ -1,0 +1,197 @@
+package cli
+
+import (
+	"testing"
+	"time"
+
+	"github.com/spf13/cobra"
+)
+
+func TestRootCommandExists(t *testing.T) {
+	cmd := newRootCmd()
+	if cmd.Use != "zenodo" {
+		t.Errorf("Use = %q, want %q", cmd.Use, "zenodo")
+	}
+	if cmd.Short == "" {
+		t.Error("Short should not be empty")
+	}
+}
+
+func TestRootCommandHasGlobalFlags(t *testing.T) {
+	cmd := newRootCmd()
+
+	flags := []string{
+		"config", "profile", "sandbox", "json", "pretty", "compact", "full",
+		"quiet", "events", "read-only", "dry-run", "confirm",
+		"timeout", "retries", "no-color", "verbose", "debug",
+	}
+
+	for _, name := range flags {
+		f := cmd.PersistentFlags().Lookup(name)
+		if f == nil {
+			t.Errorf("missing persistent flag: --%s", name)
+		}
+	}
+}
+
+func TestRootCommandSilenceFlags(t *testing.T) {
+	cmd := newRootCmd()
+	if !cmd.SilenceUsage {
+		t.Error("expected SilenceUsage=true")
+	}
+	if !cmd.SilenceErrors {
+		t.Error("expected SilenceErrors=true")
+	}
+}
+
+func TestRootCommandPersistentPreRunEReadsFlags(t *testing.T) {
+	cmd := newRootCmd()
+
+	// Set some flags
+	cmd.SetArgs([]string{
+		"--config", "/tmp/test.yaml",
+		"--profile", "sb",
+		"--sandbox",
+		"--json",
+		"--debug",
+		"--timeout", "10s",
+		"--retries", "5",
+	})
+
+	// Add a dummy subcommand to capture context
+	var capturedApp *AppContext
+	dummy := &cobra.Command{
+		Use: "dummy",
+		RunE: func(c *cobra.Command, args []string) error {
+			capturedApp = GetAppContext(c.Context())
+			return nil
+		},
+	}
+	cmd.AddCommand(dummy)
+	cmd.SetArgs([]string{
+		"--config", "/tmp/test.yaml",
+		"--profile", "sb",
+		"--sandbox",
+		"--json",
+		"--debug",
+		"--timeout", "10s",
+		"--retries", "5",
+		"dummy",
+	})
+
+	_ = cmd.Execute()
+
+	if capturedApp == nil {
+		t.Fatal("expected AppContext to be set")
+	}
+	if capturedApp.ConfigFile != "/tmp/test.yaml" {
+		t.Errorf("ConfigFile = %q, want /tmp/test.yaml", capturedApp.ConfigFile)
+	}
+	if capturedApp.Profile != "sb" {
+		t.Errorf("Profile = %q, want sb", capturedApp.Profile)
+	}
+	if !capturedApp.Sandbox {
+		t.Error("expected Sandbox=true")
+	}
+	if !capturedApp.JSON {
+		t.Error("expected JSON=true")
+	}
+	if !capturedApp.Debug {
+		t.Error("expected Debug=true")
+	}
+	if capturedApp.Timeout != 10*time.Second {
+		t.Errorf("Timeout = %v, want 10s", capturedApp.Timeout)
+	}
+	if capturedApp.Retries != 5 {
+		t.Errorf("Retries = %d, want 5", capturedApp.Retries)
+	}
+}
+
+func TestRootCommandEnvOverrides(t *testing.T) {
+	cmd := newRootCmd()
+
+	t.Setenv("ZENODO_TOKEN", "env-tok")
+	t.Setenv("ZENODO_SANDBOX", "true")
+	t.Setenv("ZENODO_DEBUG", "true")
+	t.Setenv("ZENODO_TIMEOUT", "45s")
+	t.Setenv("ZENODO_RETRIES", "7")
+
+	var capturedApp *AppContext
+	dummy := &cobra.Command{
+		Use: "dummy",
+		RunE: func(c *cobra.Command, args []string) error {
+			capturedApp = GetAppContext(c.Context())
+			return nil
+		},
+	}
+	cmd.AddCommand(dummy)
+	cmd.SetArgs([]string{"dummy"})
+
+	_ = cmd.Execute()
+
+	if capturedApp == nil {
+		t.Fatal("expected AppContext to be set")
+	}
+	if !capturedApp.Sandbox {
+		t.Error("expected Sandbox=true from ZENODO_SANDBOX")
+	}
+	if !capturedApp.Debug {
+		t.Error("expected Debug=true from ZENODO_DEBUG")
+	}
+	if capturedApp.Timeout != 45*time.Second {
+		t.Errorf("Timeout = %v, want 45s", capturedApp.Timeout)
+	}
+	if capturedApp.Retries != 7 {
+		t.Errorf("Retries = %d, want 7", capturedApp.Retries)
+	}
+}
+
+func TestRegisterSubcommands(t *testing.T) {
+	cmd := newRootCmd()
+	registerSubcommands(cmd)
+
+	expectedNames := []string{
+		"version", "auth", "records", "files", "search",
+		"doctor", "completion", "api",
+	}
+
+	names := make(map[string]bool)
+	for _, c := range cmd.Commands() {
+		names[c.Name()] = true
+	}
+
+	for _, name := range expectedNames {
+		if !names[name] {
+			t.Errorf("missing subcommand: %s", name)
+		}
+	}
+}
+
+func TestSilenceAllCommands(t *testing.T) {
+	parent := &cobra.Command{Use: "parent"}
+	child := &cobra.Command{Use: "child"}
+	grandchild := &cobra.Command{Use: "grandchild"}
+	child.AddCommand(grandchild)
+	parent.AddCommand(child)
+
+	silenceAllCommands(parent)
+
+	if !parent.SilenceUsage {
+		t.Error("parent SilenceUsage")
+	}
+	if !child.SilenceUsage {
+		t.Error("child SilenceUsage")
+	}
+	if !grandchild.SilenceUsage {
+		t.Error("grandchild SilenceUsage")
+	}
+	if !parent.SilenceErrors {
+		t.Error("parent SilenceErrors")
+	}
+	if !child.SilenceErrors {
+		t.Error("child SilenceErrors")
+	}
+	if !grandchild.SilenceErrors {
+		t.Error("grandchild SilenceErrors")
+	}
+}
