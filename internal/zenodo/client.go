@@ -149,6 +149,48 @@ func (c *Client) ListFiles(ctx context.Context, id string) ([]RecordFile, error)
 	return resp.Entries, nil
 }
 
+// DeleteFile deletes a file from a draft record.
+func (c *Client) DeleteFile(ctx context.Context, id, filename string) error {
+	return c.do(ctx, http.MethodDelete, "/api/records/"+id+"/draft/files/"+filename, nil, nil)
+}
+
+// ListPublishedFiles lists files on a published record.
+func (c *Client) ListPublishedFiles(ctx context.Context, id string) ([]RecordFile, error) {
+	var resp struct {
+		Entries []RecordFile `json:"entries"`
+	}
+	if err := c.do(ctx, http.MethodGet, "/api/records/"+id+"/files", nil, &resp); err != nil {
+		return nil, err
+	}
+	return resp.Entries, nil
+}
+
+// ListVersions returns all versions of a record.
+func (c *Client) ListVersions(ctx context.Context, id string) (SearchResponse, error) {
+	var resp SearchResponse
+	err := c.do(ctx, http.MethodGet, "/api/records/"+id+"/versions", nil, &resp)
+	return resp, err
+}
+
+// ReserveDOI reserves a DOI for a draft record.
+func (c *Client) ReserveDOI(ctx context.Context, id string) (*Record, error) {
+	var rec Record
+	if err := c.do(ctx, http.MethodPost, "/api/records/"+id+"/draft/pids/doi", nil, &rec); err != nil {
+		return nil, err
+	}
+	return &rec, nil
+}
+
+// SubmitToCommunity submits a draft record for community review.
+func (c *Client) SubmitToCommunity(ctx context.Context, id, communityID string) error {
+	body := map[string]any{
+		"receiver": map[string]any{
+			"community": communityID,
+		},
+	}
+	return c.do(ctx, http.MethodPut, "/api/records/"+id+"/draft/review", body, nil)
+}
+
 // ResolveLatest returns the ID of the latest version of a record.
 func (c *Client) ResolveLatest(ctx context.Context, id string) (string, error) {
 	rec, err := c.GetRecord(ctx, id)

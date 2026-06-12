@@ -224,10 +224,108 @@ modify it and publish it as a new version.`,
 	}),
 }
 
+var recordsVersionsCmd = &cobra.Command{
+	Use:   "versions [ID]",
+	Short: "List all versions of a record",
+	Long:  "List all versions (published and draft) of a record, showing version number, status, and creation date.",
+	Example: `  zenodo records versions 12345
+  zenodo records versions 12345 --json`,
+	Args: cobra.ExactArgs(1),
+	RunE: withAuth("records.versions", func(ctx *CmdContext) error {
+		id := ctx.Args[0]
+		resp, err := ctx.Client.ListVersions(ctx.Cmd.Context(), id)
+		if err != nil {
+			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
+		}
+		if ctx.App.JSON {
+			return ctx.R.Success(ctx.Meta, resp.Hits, nil)
+		}
+		for _, rec := range resp.Hits.Hits {
+			ctx.R.Human("[%s] %s (%s)\n", rec.ID, rec.Metadata.Title, rec.Status)
+		}
+		ctx.R.Human("\nTotal: %d versions\n", resp.Hits.Total)
+		return nil
+	}),
+}
+
+var recordsReserveDOICmd = &cobra.Command{
+	Use:   "reserve-doi [ID]",
+	Short: "Reserve a DOI for a draft record",
+	Long: `Reserve a DOI for a draft record before publishing.
+
+The reserved DOI can be cited immediately, even before the record is published.`,
+	Example: "  zenodo records reserve-doi 12345",
+	Args:    cobra.ExactArgs(1),
+	RunE: withAuth("records.reserve-doi", func(ctx *CmdContext) error {
+		if err := requireReadOnly(&ctx.R, ctx.Meta, ctx.App); err != nil {
+			return err
+		}
+		id := ctx.Args[0]
+		if ctx.App.DryRun {
+			ctx.R.Human("Would reserve DOI for %s\n", id)
+			return ctx.R.Success(ctx.Meta, map[string]any{"planned": true, "id": id, "action": "reserve_doi"}, nil)
+		}
+		rec, err := ctx.Client.ReserveDOI(ctx.Cmd.Context(), id)
+		if err != nil {
+			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
+		}
+		if ctx.App.JSON {
+			return ctx.R.Success(ctx.Meta, rec, nil)
+		}
+		ctx.R.Human("Reserved DOI for %s\n", rec.ID)
+		return nil
+	}),
+}
+
+var recordsSubmitCmd = &cobra.Command{
+	Use:   "submit [ID]",
+	Short: "Submit a draft record for community review",
+	Long: `Submit a draft record to a Zenodo community for review and inclusion.
+
+Use --community to specify the community identifier.`,
+	Example: `  zenodo records submit 12345 --community my-community
+  zenodo records submit 12345 --community my-community --confirm`,
+	Args: cobra.ExactArgs(1),
+	RunE: withAuth("records.submit", func(ctx *CmdContext) error {
+		if err := requireReadOnly(&ctx.R, ctx.Meta, ctx.App); err != nil {
+			return err
+		}
+		community, _ := ctx.Cmd.Flags().GetString("community")
+		if community == "" {
+			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrValidationFailed, "--community is required"))
+		}
+		if err := requireConfirm(&ctx.R, ctx.Meta, ctx.App); err != nil {
+			return err
+		}
+		id := ctx.Args[0]
+		if ctx.App.DryRun {
+			ctx.R.Human("Would submit %s to community %s\n", id, community)
+			return ctx.R.Success(ctx.Meta, map[string]any{
+				"planned":   true,
+				"id":        id,
+				"community": community,
+				"action":    "submit_to_community",
+			}, nil)
+		}
+		if err := ctx.Client.SubmitToCommunity(ctx.Cmd.Context(), id, community); err != nil {
+			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
+		}
+		if ctx.App.JSON {
+			return ctx.R.Success(ctx.Meta, map[string]any{
+				"id":        id,
+				"community": community,
+			}, nil)
+		}
+		ctx.R.Human("Submitted %s to community %s for review\n", id, community)
+		return nil
+	}),
+}
+
 func init() {
 	recordsCreateCmd.Flags().String("title", "", "record title")
 	recordsCreateCmd.Flags().String("description", "", "record description")
 	recordsCreateCmd.Flags().String("metadata", "", "path to JSON metadata file")
+	recordsSubmitCmd.Flags().String("community", "", "community identifier")
 
 	recordsCmd.AddCommand(recordsListCmd)
 	recordsCmd.AddCommand(recordsCreateCmd)
@@ -235,4 +333,7 @@ func init() {
 	recordsCmd.AddCommand(recordsDeleteCmd)
 	recordsCmd.AddCommand(recordsPublishCmd)
 	recordsCmd.AddCommand(recordsNewVersionCmd)
+	recordsCmd.AddCommand(recordsVersionsCmd)
+	recordsCmd.AddCommand(recordsReserveDOICmd)
+	recordsCmd.AddCommand(recordsSubmitCmd)
 }

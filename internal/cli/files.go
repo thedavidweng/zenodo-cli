@@ -67,7 +67,10 @@ The record must be a draft (not published).`,
 var filesListCmd = &cobra.Command{
 	Use:   "list [ID]",
 	Short: "List files in a record",
-	Long:  "List all files attached to a draft record, showing name, size, and checksum.",
+	Long: `List all files attached to a record.
+
+Tries the draft file list first; if the record is published (no draft), falls back
+to the published file list.`,
 	Example: `  zenodo files list 12345
   zenodo files list 12345 --json`,
 	Args: cobra.ExactArgs(1),
@@ -75,7 +78,11 @@ var filesListCmd = &cobra.Command{
 		id := ctx.Args[0]
 		files, err := ctx.Client.ListFiles(ctx.Cmd.Context(), id)
 		if err != nil {
-			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
+			// Fall back to published files
+			files, err = ctx.Client.ListPublishedFiles(ctx.Cmd.Context(), id)
+			if err != nil {
+				return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
+			}
 		}
 		if ctx.App.JSON {
 			return ctx.R.Success(ctx.Meta, map[string]any{
@@ -85,6 +92,54 @@ var filesListCmd = &cobra.Command{
 		}
 		for _, f := range files {
 			ctx.R.Human("%s (%d bytes)\n", f.Key, f.Size)
+		}
+		return nil
+	}),
+}
+
+var filesDeleteCmd = &cobra.Command{
+	Use:   "delete [ID] [FILE...]",
+	Short: "Delete files from a draft record",
+	Long: `Delete one or more files from a draft record by filename.
+
+Only works on draft records. Published records cannot have files removed.`,
+	Example: `  zenodo files delete 12345 data.csv
+  zenodo files delete 12345 data.csv results.json --confirm`,
+	Args: cobra.MinimumNArgs(2),
+	RunE: withAuth("files.delete", func(ctx *CmdContext) error {
+		if err := requireReadOnly(&ctx.R, ctx.Meta, ctx.App); err != nil {
+			return err
+		}
+		if err := requireConfirm(&ctx.R, ctx.Meta, ctx.App); err != nil {
+			return err
+		}
+		id := ctx.Args[0]
+		filenames := ctx.Args[1:]
+
+		if ctx.App.DryRun {
+			for _, name := range filenames {
+				ctx.R.Human("Would delete %s from %s\n", name, id)
+			}
+			return ctx.R.Success(ctx.Meta, map[string]any{
+				"planned":   true,
+				"record_id": id,
+				"files":     filenames,
+			}, nil)
+		}
+
+		for _, name := range filenames {
+			if err := ctx.Client.DeleteFile(ctx.Cmd.Context(), id, name); err != nil {
+				return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "deleting %s: %v", name, err))
+			}
+			ctx.R.Human("Deleted %s\n", name)
+		}
+
+		if ctx.App.JSON {
+			return ctx.R.Success(ctx.Meta, map[string]any{
+				"record_id": id,
+				"files":     filenames,
+				"count":     len(filenames),
+			}, nil)
 		}
 		return nil
 	}),
@@ -151,4 +206,5 @@ func init() {
 	filesCmd.AddCommand(filesUploadCmd)
 	filesCmd.AddCommand(filesListCmd)
 	filesCmd.AddCommand(filesDownloadCmd)
+	filesCmd.AddCommand(filesDeleteCmd)
 }

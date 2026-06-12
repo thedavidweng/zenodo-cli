@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [0.1.0] - 2026-06-11
+## [0.1.0] - 2026-06-12
 
 Initial release.
 
@@ -28,10 +28,14 @@ Initial release.
 - `records delete` — delete a draft record with safety gates
 - `records publish` — publish a draft (irreversible, requires `--confirm`)
 - `records new-version` — create a new draft version of a published record
+- `records versions` — list all versions of a record
+- `records reserve-doi` — reserve a DOI for a draft record
+- `records submit` — submit a draft for community review
 
 #### File Management
 - `files upload` — upload files to a draft record
 - `files list` — list files in a record
+- `files delete` — delete files from a draft record
 - `files download` — download files from a published record
 
 #### Search
