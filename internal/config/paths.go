@@ -23,15 +23,3 @@ func DefaultConfigPath() string {
 	}
 	return filepath.Join(cfgDir, "zenodo-cli", "config.yaml")
 }
-
-// oldDefaultConfigPathFn returns the legacy config path (~/.config/zenodo-cli/config.yaml).
-// Overridable in tests.
-var oldDefaultConfigPathFn = oldDefaultConfigPath
-
-func oldDefaultConfigPath() string {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return ""
-	}
-	return filepath.Join(home, ".config", "zenodo-cli", "config.yaml")
-}

@@ -85,9 +85,6 @@ func Save(path string, cfg *Config) error {
 
 // LoadOrCreate loads the config from path, or creates a new default config
 // if the file does not exist.
-//
-// Migration: if path doesn't exist but a config exists at the legacy
-// ~/.config/zenodo-cli/ location, it is moved to path before loading.
 func LoadOrCreate(path string) (*Config, error) {
 	cfg, err := Load(path)
 	if err == nil {
@@ -95,16 +92,6 @@ func LoadOrCreate(path string) (*Config, error) {
 	}
 	if !errors.Is(err, os.ErrNotExist) {
 		return nil, err
-	}
-	// Try migrating from old default path.
-	if old := oldDefaultConfigPathFn(); old != "" && old != path {
-		if _, statErr := os.Stat(old); statErr == nil {
-			if mkErr := os.MkdirAll(filepath.Dir(path), 0700); mkErr == nil {
-				if moveErr := os.Rename(old, path); moveErr == nil {
-					return Load(path)
-				}
-			}
-		}
 	}
 	// File doesn't exist; create a default config and save it.
 	cfg = &Config{Profiles: map[string]*Profile{}}
