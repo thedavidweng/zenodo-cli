@@ -4,6 +4,39 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.1.1] - 2026-06-12
+
+### Added
+
+#### Record Management
+- `records versions` — list all versions of a record
+- `records reserve-doi` — reserve a DOI for a draft record
+- `records submit` — submit a draft for community review (`--community`)
+- `records requests` — list community review requests
+
+#### File Management
+- `files delete` — delete files from a draft record
+- `files info` — show metadata for a single file in a draft
+- `files import` — import files from previous version into a new draft
+- `files list` — now supports both draft and published records (auto-detect)
+- `files download --latest` — resolve and download the latest published version
+
+### Changed
+
+#### CLI UX
+- All commands now have `Long` descriptions and `Example` blocks
+- `--read-only` enforced on all mutation commands (was dead code)
+- `--dry-run` enforced on `records create/delete/publish/new-version` and `api post/put`
+- `api post` and `api put` now require `--confirm`
+- Flag descriptions clarified (`--compact`, `--full`, `--config`, `--profile`, etc.)
+- `doctor` now checks API connectivity in addition to config/token
+- `search` total output moved to stdout (was stderr)
+- New environment variables: `ZENODO_JSON`, `ZENODO_READ_ONLY`, `ZENODO_DRY_RUN`, `ZENODO_CONFIRM`, `ZENODO_QUIET`
+
+#### Build & CI
+- Release workflow: removed manual completions step (GoReleaser handles via `generate_completions_from_executable`)
+- Release workflow: added `syft` installation for SBOM generation
+
 ## [0.1.0] - 2026-06-12
 
 Initial release.
@@ -28,14 +61,10 @@ Initial release.
 - `records delete` — delete a draft record with safety gates
 - `records publish` — publish a draft (irreversible, requires `--confirm`)
 - `records new-version` — create a new draft version of a published record
-- `records versions` — list all versions of a record
-- `records reserve-doi` — reserve a DOI for a draft record
-- `records submit` — submit a draft for community review
 
 #### File Management
 - `files upload` — upload files to a draft record
 - `files list` — list files in a record
-- `files delete` — delete files from a draft record
 - `files download` — download files from a published record
 
 #### Search

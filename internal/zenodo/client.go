@@ -191,6 +191,31 @@ func (c *Client) SubmitToCommunity(ctx context.Context, id, communityID string) 
 	return c.do(ctx, http.MethodPut, "/api/records/"+id+"/draft/review", body, nil)
 }
 
+// GetFile retrieves metadata for a single file in a draft record.
+func (c *Client) GetFile(ctx context.Context, id, filename string) (*RecordFile, error) {
+	var f RecordFile
+	if err := c.do(ctx, http.MethodGet, "/api/records/"+id+"/draft/files/"+filename, nil, &f); err != nil {
+		return nil, err
+	}
+	return &f, nil
+}
+
+// ImportFiles imports files from the previous version into a new draft.
+func (c *Client) ImportFiles(ctx context.Context, id string) error {
+	return c.do(ctx, http.MethodPost, "/api/records/"+id+"/draft/actions/files-import", nil, nil)
+}
+
+// ListRequests lists review/community-submission requests.
+func (c *Client) ListRequests(ctx context.Context, query string) (SearchResponse, error) {
+	var resp SearchResponse
+	path := "/api/requests"
+	if query != "" {
+		path += "?q=" + url.QueryEscape(query)
+	}
+	err := c.do(ctx, http.MethodGet, path, nil, &resp)
+	return resp, err
+}
+
 // ResolveLatest returns the ID of the latest version of a record.
 func (c *Client) ResolveLatest(ctx context.Context, id string) (string, error) {
 	rec, err := c.GetRecord(ctx, id)

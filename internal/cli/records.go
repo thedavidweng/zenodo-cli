@@ -321,6 +321,36 @@ Use --community to specify the community identifier.`,
 	}),
 }
 
+var recordsRequestsCmd = &cobra.Command{
+	Use:   "requests [QUERY]",
+	Short: "List review requests",
+	Long: `List community review requests. Optionally filter by query string.
+
+Without a query, lists all requests. Use a record ID as the query to find
+requests related to a specific record.`,
+	Example: `  zenodo records requests
+  zenodo records requests 12345
+  zenodo records requests --json`,
+	RunE: withAuth("records.requests", func(ctx *CmdContext) error {
+		query := ""
+		if len(ctx.Args) > 0 {
+			query = ctx.Args[0]
+		}
+		resp, err := ctx.Client.ListRequests(ctx.Cmd.Context(), query)
+		if err != nil {
+			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
+		}
+		if ctx.App.JSON {
+			return ctx.R.Success(ctx.Meta, resp.Hits, nil)
+		}
+		for _, rec := range resp.Hits.Hits {
+			ctx.R.Human("[%s] %s (%s)\n", rec.ID, rec.Metadata.Title, rec.Status)
+		}
+		ctx.R.Human("\nTotal: %d\n", resp.Hits.Total)
+		return nil
+	}),
+}
+
 func init() {
 	recordsCreateCmd.Flags().String("title", "", "record title")
 	recordsCreateCmd.Flags().String("description", "", "record description")
@@ -336,4 +366,5 @@ func init() {
 	recordsCmd.AddCommand(recordsVersionsCmd)
 	recordsCmd.AddCommand(recordsReserveDOICmd)
 	recordsCmd.AddCommand(recordsSubmitCmd)
+	recordsCmd.AddCommand(recordsRequestsCmd)
 }

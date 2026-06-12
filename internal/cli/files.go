@@ -199,6 +199,67 @@ Use --latest to resolve the latest published version before downloading.`,
 	}),
 }
 
+var filesInfoCmd = &cobra.Command{
+	Use:   "info [ID] [FILE]",
+	Short: "Show metadata for a single file",
+	Long:  "Show metadata (name, size, checksum) for a single file in a draft record.",
+	Example: `  zenodo files info 12345 data.csv
+  zenodo files info 12345 data.csv --json`,
+	Args: cobra.ExactArgs(2),
+	RunE: withAuth("files.info", func(ctx *CmdContext) error {
+		id := ctx.Args[0]
+		filename := ctx.Args[1]
+		f, err := ctx.Client.GetFile(ctx.Cmd.Context(), id, filename)
+		if err != nil {
+			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
+		}
+		if ctx.App.JSON {
+			return ctx.R.Success(ctx.Meta, f, nil)
+		}
+		ctx.R.Human("Key:      %s\n", f.Key)
+		ctx.R.Human("Size:     %d bytes\n", f.Size)
+		ctx.R.Human("Checksum: %s\n", f.Checksum)
+		return nil
+	}),
+}
+
+var filesImportCmd = &cobra.Command{
+	Use:   "import [ID]",
+	Short: "Import files from the previous version",
+	Long: `Import all files from the previous published version into a new draft.
+
+Use this after "records new-version" to carry over files from the original record
+without re-uploading them.`,
+	Example: `  zenodo files import 12345
+  zenodo files import 12345 --dry-run`,
+	Args: cobra.ExactArgs(1),
+	RunE: withAuth("files.import", func(ctx *CmdContext) error {
+		if err := requireReadOnly(&ctx.R, ctx.Meta, ctx.App); err != nil {
+			return err
+		}
+		id := ctx.Args[0]
+		if ctx.App.DryRun {
+			ctx.R.Human("Would import files from previous version into %s\n", id)
+			return ctx.R.Success(ctx.Meta, map[string]any{
+				"planned":   true,
+				"record_id": id,
+				"action":    "files_import",
+			}, nil)
+		}
+		if err := ctx.Client.ImportFiles(ctx.Cmd.Context(), id); err != nil {
+			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
+		}
+		if ctx.App.JSON {
+			return ctx.R.Success(ctx.Meta, map[string]any{
+				"record_id": id,
+				"action":    "files_imported",
+			}, nil)
+		}
+		ctx.R.Human("Imported files from previous version into %s\n", id)
+		return nil
+	}),
+}
+
 func init() {
 	filesDownloadCmd.Flags().String("dest", ".", "destination directory")
 	filesDownloadCmd.Flags().Bool("latest", false, "resolve and download the latest version")
@@ -207,4 +268,6 @@ func init() {
 	filesCmd.AddCommand(filesListCmd)
 	filesCmd.AddCommand(filesDownloadCmd)
 	filesCmd.AddCommand(filesDeleteCmd)
+	filesCmd.AddCommand(filesInfoCmd)
+	filesCmd.AddCommand(filesImportCmd)
 }
