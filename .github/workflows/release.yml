@@ -25,15 +25,6 @@ jobs:
       - name: Install cosign
         uses: sigstore/cosign-installer@v3
 
-      - name: Generate completions
-        run: |
-          go build -o ./zenodo ./cmd/zenodo
-          mkdir -p completions
-          ./zenodo completion bash > completions/zenodo.bash
-          ./zenodo completion zsh > completions/zenodo.zsh
-          ./zenodo completion fish > completions/zenodo.fish
-          rm ./zenodo
-
       - uses: goreleaser/goreleaser-action@v6
         with:
           version: latest
