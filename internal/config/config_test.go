@@ -83,9 +83,9 @@ func TestSaveAndLoadRoundTrip(t *testing.T) {
 		CurrentProfile: "sandbox",
 		Profiles: map[string]*Profile{
 			"sandbox": {
-				Token:   "test-token",
-				Sandbox: true,
-				BaseURL: "https://sandbox.zenodo.org/api",
+				Token:     "test-token",
+				Sandbox:   true,
+				BaseURL:   "https://sandbox.zenodo.org/api",
 				Endpoints: Endpoints{API: "https://sandbox.zenodo.org/api"},
 			},
 		},

@@ -11,12 +11,12 @@ func TestEnvelopeJSON(t *testing.T) {
 		OK:   true,
 		Data: map[string]string{"id": "123"},
 		Meta: Meta{
-			Command:      "deposit list",
-			Profile:      "default",
-			DurationMS:   42,
+			Command:       "deposit list",
+			Profile:       "default",
+			DurationMS:    42,
 			SchemaVersion: SchemaVersion,
-			RequestID:    "req-abc",
-			Warnings:     []string{"deprecated field"},
+			RequestID:     "req-abc",
+			Warnings:      []string{"deprecated field"},
 		},
 	}
 

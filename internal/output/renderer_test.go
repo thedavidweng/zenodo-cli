@@ -150,8 +150,8 @@ func TestRendererFailureHuman(t *testing.T) {
 func TestRendererHumanSuppressedQuiet(t *testing.T) {
 	var out, errBuf bytes.Buffer
 	r := Renderer{
-		Out:  &out,
-		Err:  &errBuf,
+		Out:   &out,
+		Err:   &errBuf,
 		Quiet: true,
 	}
 	r.Human("hello %s", "world")

@@ -5,18 +5,18 @@ const SchemaVersion = "2026-06-11"
 
 // Error codes.
 const (
-	ErrValidationFailed      = "VALIDATION_FAILED"
-	ErrAuthRequired          = "AUTH_REQUIRED"
-	ErrAuthFailed            = "AUTH_FAILED"
-	ErrZenodoAPI             = "ZENODO_API_ERROR"
-	ErrNetwork               = "NETWORK_ERROR"
-	ErrPartialSuccess        = "PARTIAL_SUCCESS"
-	ErrReadOnlyViolation     = "READ_ONLY_VIOLATION"
-	ErrConfirmationRequired  = "CONFIRMATION_REQUIRED"
-	ErrFilesystem            = "FILESYSTEM_ERROR"
-	ErrConfig                = "CONFIG_ERROR"
-	ErrInterrupted           = "INTERRUPTED"
-	ErrResourceNotFound      = "RESOURCE_NOT_FOUND"
+	ErrValidationFailed     = "VALIDATION_FAILED"
+	ErrAuthRequired         = "AUTH_REQUIRED"
+	ErrAuthFailed           = "AUTH_FAILED"
+	ErrZenodoAPI            = "ZENODO_API_ERROR"
+	ErrNetwork              = "NETWORK_ERROR"
+	ErrPartialSuccess       = "PARTIAL_SUCCESS"
+	ErrReadOnlyViolation    = "READ_ONLY_VIOLATION"
+	ErrConfirmationRequired = "CONFIRMATION_REQUIRED"
+	ErrFilesystem           = "FILESYSTEM_ERROR"
+	ErrConfig               = "CONFIG_ERROR"
+	ErrInterrupted          = "INTERRUPTED"
+	ErrResourceNotFound     = "RESOURCE_NOT_FOUND"
 )
 
 // Envelope is the standard JSON output wrapper for all commands.
@@ -38,12 +38,12 @@ type ErrorBody struct {
 
 // Meta contains request metadata.
 type Meta struct {
-	Command      string   `json:"command,omitempty"`
-	Profile      string   `json:"profile,omitempty"`
-	DurationMS   int64    `json:"duration_ms,omitempty"`
-	SchemaVersion string  `json:"schema_version"`
-	RequestID    string   `json:"request_id,omitempty"`
-	Warnings     []string `json:"warnings,omitempty"`
+	Command       string   `json:"command,omitempty"`
+	Profile       string   `json:"profile,omitempty"`
+	DurationMS    int64    `json:"duration_ms,omitempty"`
+	SchemaVersion string   `json:"schema_version"`
+	RequestID     string   `json:"request_id,omitempty"`
+	Warnings      []string `json:"warnings,omitempty"`
 }
 
 // ExitCode maps an error code to a process exit code.

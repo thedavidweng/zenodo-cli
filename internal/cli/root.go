@@ -17,9 +17,9 @@ var rootCmd = newRootCmd()
 
 func newRootCmd() *cobra.Command {
 	root := &cobra.Command{
-		Use:   "zenodo",
-		Short: "Agent-friendly Zenodo CLI",
-		Long:  `A single-binary CLI tool for Zenodo deposit management, file upload/download, and API access.`,
+		Use:           "zenodo",
+		Short:         "Agent-friendly Zenodo CLI",
+		Long:          `A single-binary CLI tool for Zenodo deposit management, file upload/download, and API access.`,
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {

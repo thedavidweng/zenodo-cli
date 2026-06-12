@@ -54,7 +54,8 @@ zenodo-cli is the first CLI built on the new InvenioRDM API (`/api/records`).
 ### Homebrew
 
 ```sh
-brew install --cask thedavidweng/tap/zenodo
+brew tap thedavidweng/tap
+brew install zenodo
 ```
 
 ### Go

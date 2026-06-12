@@ -34,8 +34,8 @@ func CategoryForCode(code string) string {
 
 // retryableCodes lists error codes that are retryable.
 var retryableCodes = map[string]bool{
-	model.ErrNetwork:    true,
-	model.ErrZenodoAPI:  true,
+	model.ErrNetwork:   true,
+	model.ErrZenodoAPI: true,
 }
 
 // Errorf creates an ErrorBody with the given code and formatted message.

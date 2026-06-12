@@ -582,8 +582,8 @@ func (fz *FakeZenodo) recordToJSON(rec *FakeRecord) map[string]any {
 	}
 
 	return map[string]any{
-		"id":     rec.ID,
-		"status": rec.Status,
+		"id":      rec.ID,
+		"status":  rec.Status,
 		"created": rec.CreatedAt,
 		"updated": rec.UpdatedAt,
 		"metadata": map[string]any{
