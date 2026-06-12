@@ -51,10 +51,17 @@ type RecordMetadata struct {
 	ResourceType    ResourceType `json:"resource_type"`
 }
 
-// Creator represents a record creator/contributor.
+// Creator represents a record creator/contributor in InvenioRDM 5.x format.
 type Creator struct {
-	Name string `json:"name"`
-	Type string `json:"type,omitempty"`
+	PersonOrOrg *PersonOrOrg `json:"person_or_org,omitempty"`
+}
+
+// PersonOrOrg represents a person or organization.
+type PersonOrOrg struct {
+	Type       string `json:"type"`
+	FamilyName string `json:"family_name,omitempty"`
+	GivenName  string `json:"given_name,omitempty"`
+	Name       string `json:"name,omitempty"`
 }
 
 // ResourceType describes the type of resource.

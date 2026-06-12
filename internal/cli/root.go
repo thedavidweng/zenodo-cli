@@ -65,7 +65,7 @@ func newRootCmd() *cobra.Command {
 					}
 				}
 			}
-			if app.Timeout == 30*time.Second {
+			if app.Timeout == 5*time.Minute {
 				if env := os.Getenv("ZENODO_TIMEOUT"); env != "" {
 					if d, err := time.ParseDuration(env); err == nil {
 						app.Timeout = d
@@ -154,7 +154,7 @@ func newRootCmd() *cobra.Command {
 	root.PersistentFlags().Bool("read-only", false, "block all remote mutations")
 	root.PersistentFlags().Bool("dry-run", false, "show what would happen without executing")
 	root.PersistentFlags().Bool("confirm", false, "confirm irreversible operations")
-	root.PersistentFlags().Duration("timeout", 30*time.Second, "command/API timeout")
+	root.PersistentFlags().Duration("timeout", 5*time.Minute, "command/API timeout")
 	root.PersistentFlags().Int("retries", 3, "retry count for retryable failures")
 	root.PersistentFlags().Bool("no-color", false, "disable ANSI color output")
 	root.PersistentFlags().Bool("verbose", false, "emit diagnostics to stderr")

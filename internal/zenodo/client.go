@@ -49,7 +49,8 @@ func (c *Client) SearchRecords(ctx context.Context, query string) (SearchRespons
 }
 
 // CreateRecord creates a new draft record with the given metadata.
-func (c *Client) CreateRecord(ctx context.Context, meta RecordMetadata) (*Record, error) {
+// meta can be a RecordMetadata struct or a raw map[string]any from JSON.
+func (c *Client) CreateRecord(ctx context.Context, meta any) (*Record, error) {
 	body := map[string]any{"metadata": meta}
 	var rec Record
 	if err := c.do(ctx, http.MethodPost, "/api/records", body, &rec); err != nil {
@@ -77,7 +78,8 @@ func (c *Client) GetDraft(ctx context.Context, id string) (*Record, error) {
 }
 
 // UpdateDraft updates the metadata of a draft record.
-func (c *Client) UpdateDraft(ctx context.Context, id string, meta RecordMetadata) (*Record, error) {
+// meta can be a RecordMetadata struct or a raw map[string]any from JSON.
+func (c *Client) UpdateDraft(ctx context.Context, id string, meta any) (*Record, error) {
 	body := map[string]any{"metadata": meta}
 	var rec Record
 	if err := c.do(ctx, http.MethodPut, "/api/records/"+id+"/draft", body, &rec); err != nil {

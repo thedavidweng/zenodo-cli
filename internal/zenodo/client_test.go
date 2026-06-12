@@ -49,7 +49,11 @@ func TestCreateRecord(t *testing.T) {
 		Description:     "A test description",
 		PublicationDate: "2026-01-01",
 		ResourceType:    zenodo.ResourceType{Type: "dataset"},
-		Creators:        []zenodo.Creator{{Name: "Alice", Type: "personal"}},
+		Creators: []zenodo.Creator{{PersonOrOrg: &zenodo.PersonOrOrg{
+			Type:       "personal",
+			FamilyName: "Smith",
+			GivenName:  "Alice",
+		}}},
 	}
 
 	rec, err := client.CreateRecord(ctx, meta)

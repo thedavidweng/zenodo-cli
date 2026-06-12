@@ -65,7 +65,7 @@ use "records publish" to make it public.`,
 		description, _ := ctx.Cmd.Flags().GetString("description")
 		metadataFile, _ := ctx.Cmd.Flags().GetString("metadata")
 
-		var meta zenodo.RecordMetadata
+		var meta any
 		if metadataFile != "" {
 			data, err := os.ReadFile(metadataFile)
 			if err != nil {
