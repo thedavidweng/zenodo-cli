@@ -15,11 +15,14 @@ import (
 var recordsCmd = &cobra.Command{
 	Use:   "records",
 	Short: "Manage Zenodo records",
+	Long:  "Create, list, view, publish, and manage Zenodo deposit records.",
 }
 
 var recordsListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List your records",
+	Use:     "list",
+	Short:   "List your records",
+	Long:    "List all records (draft and published) owned by the authenticated user.",
+	Example: "  zenodo records list\n  zenodo records list --json",
 	RunE: withAuth("records.list", func(ctx *CmdContext) error {
 		resp, err := ctx.Client.ListRecords(ctx.Cmd.Context())
 		if err != nil {
@@ -39,7 +42,25 @@ var recordsListCmd = &cobra.Command{
 var recordsCreateCmd = &cobra.Command{
 	Use:   "create",
 	Short: "Create a new draft record",
+	Long: `Create a new draft record on Zenodo.
+
+Use --title and --description for a quick record, or --metadata for full control
+(--metadata overrides --title and --description). The new record is a draft;
+use "records publish" to make it public.`,
+	Example: `  zenodo records create --title "My Dataset" --description "Research data"
+  zenodo records create --metadata meta.json
+  zenodo records create --title "Test" --dry-run`,
 	RunE: withAuth("records.create", func(ctx *CmdContext) error {
+		if err := requireReadOnly(&ctx.R, ctx.Meta, ctx.App); err != nil {
+			return err
+		}
+		if ctx.App.DryRun {
+			title, _ := ctx.Cmd.Flags().GetString("title")
+			metadataFile, _ := ctx.Cmd.Flags().GetString("metadata")
+			ctx.R.Human("Would create draft record (title=%q, metadata=%s)\n", title, metadataFile)
+			return ctx.R.Success(ctx.Meta, map[string]any{"planned": true, "action": "create_record"}, nil)
+		}
+
 		title, _ := ctx.Cmd.Flags().GetString("title")
 		description, _ := ctx.Cmd.Flags().GetString("description")
 		metadataFile, _ := ctx.Cmd.Flags().GetString("metadata")
@@ -81,7 +102,12 @@ var recordsCreateCmd = &cobra.Command{
 var recordsShowCmd = &cobra.Command{
 	Use:   "show [ID]",
 	Short: "Show record details",
-	Args:  cobra.ExactArgs(1),
+	Long: `Show metadata for a record by its ID.
+
+Tries to fetch the draft first; if none exists, falls back to the published record.`,
+	Example: `  zenodo records show 12345
+  zenodo records show 12345 --json`,
+	Args: cobra.ExactArgs(1),
 	RunE: withAuth("records.show", func(ctx *CmdContext) error {
 		id := ctx.Args[0]
 		// Try draft first, fall back to published
@@ -108,12 +134,23 @@ var recordsShowCmd = &cobra.Command{
 var recordsDeleteCmd = &cobra.Command{
 	Use:   "delete [ID]",
 	Short: "Delete a draft record",
-	Args:  cobra.ExactArgs(1),
+	Long: `Delete a draft record. Published records cannot be deleted.
+
+Requires --confirm because this operation is irreversible.`,
+	Example: "  zenodo records delete 12345 --confirm",
+	Args:    cobra.ExactArgs(1),
 	RunE: withAuth("records.delete", func(ctx *CmdContext) error {
+		if err := requireReadOnly(&ctx.R, ctx.Meta, ctx.App); err != nil {
+			return err
+		}
 		if err := requireConfirm(&ctx.R, ctx.Meta, ctx.App); err != nil {
 			return err
 		}
 		id := ctx.Args[0]
+		if ctx.App.DryRun {
+			ctx.R.Human("Would delete draft %s\n", id)
+			return ctx.R.Success(ctx.Meta, map[string]any{"planned": true, "id": id, "action": "delete_draft"}, nil)
+		}
 		if err := ctx.Client.DeleteDraft(ctx.Cmd.Context(), id); err != nil {
 			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
 		}
@@ -128,12 +165,23 @@ var recordsDeleteCmd = &cobra.Command{
 var recordsPublishCmd = &cobra.Command{
 	Use:   "publish [ID]",
 	Short: "Publish a draft record",
-	Args:  cobra.ExactArgs(1),
+	Long: `Publish a draft record, making it publicly accessible with a DOI.
+
+This is irreversible. Once published, a record cannot be unpublished or deleted.`,
+	Example: "  zenodo records publish 12345 --confirm",
+	Args:    cobra.ExactArgs(1),
 	RunE: withAuth("records.publish", func(ctx *CmdContext) error {
+		if err := requireReadOnly(&ctx.R, ctx.Meta, ctx.App); err != nil {
+			return err
+		}
 		if err := requireConfirm(&ctx.R, ctx.Meta, ctx.App); err != nil {
 			return err
 		}
 		id := ctx.Args[0]
+		if ctx.App.DryRun {
+			ctx.R.Human("Would publish draft %s (irreversible)\n", id)
+			return ctx.R.Success(ctx.Meta, map[string]any{"planned": true, "id": id, "action": "publish_draft"}, nil)
+		}
 		rec, err := ctx.Client.PublishDraft(ctx.Cmd.Context(), id)
 		if err != nil {
 			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
@@ -149,9 +197,21 @@ var recordsPublishCmd = &cobra.Command{
 var recordsNewVersionCmd = &cobra.Command{
 	Use:   "new-version [ID]",
 	Short: "Create a new draft version of a record",
-	Args:  cobra.ExactArgs(1),
+	Long: `Create a new editable draft from an existing published record.
+
+The new draft inherits metadata and files from the original. You can then
+modify it and publish it as a new version.`,
+	Example: "  zenodo records new-version 12345",
+	Args:    cobra.ExactArgs(1),
 	RunE: withAuth("records.new-version", func(ctx *CmdContext) error {
+		if err := requireReadOnly(&ctx.R, ctx.Meta, ctx.App); err != nil {
+			return err
+		}
 		id := ctx.Args[0]
+		if ctx.App.DryRun {
+			ctx.R.Human("Would create new version draft from %s\n", id)
+			return ctx.R.Success(ctx.Meta, map[string]any{"planned": true, "id": id, "action": "new_version"}, nil)
+		}
 		rec, err := ctx.Client.NewVersion(ctx.Cmd.Context(), id)
 		if err != nil {
 			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))

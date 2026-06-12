@@ -17,6 +17,7 @@ import (
 var authCmd = &cobra.Command{
 	Use:   "auth",
 	Short: "Manage Zenodo authentication",
+	Long:  "Login, check status, and logout. Supports multiple named profiles.",
 }
 
 var authLoginCmd = &cobra.Command{

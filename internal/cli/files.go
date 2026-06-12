@@ -13,21 +13,40 @@ import (
 var filesCmd = &cobra.Command{
 	Use:   "files",
 	Short: "Manage files in Zenodo records",
+	Long:  "Upload, list, and download files attached to Zenodo records.",
 }
 
 var filesUploadCmd = &cobra.Command{
 	Use:   "upload [ID] [FILE...]",
 	Short: "Upload files to a draft record",
-	Args:  cobra.MinimumNArgs(2),
+	Long: `Upload one or more local files to a draft record.
+
+Files are uploaded via the three-step InvenioRDM process: init, content upload, commit.
+The record must be a draft (not published).`,
+	Example: `  zenodo files upload 12345 data.csv
+  zenodo files upload 12345 data.csv results.json
+  zenodo files upload 12345 *.csv --dry-run`,
+	Args: cobra.MinimumNArgs(2),
 	RunE: withAuth("files.upload", func(ctx *CmdContext) error {
+		if err := requireReadOnly(&ctx.R, ctx.Meta, ctx.App); err != nil {
+			return err
+		}
 		id := ctx.Args[0]
 		files := ctx.Args[1:]
 
-		for _, filePath := range files {
-			if ctx.App.DryRun {
+		if ctx.App.DryRun {
+			for _, filePath := range files {
 				ctx.R.Human("Would upload %s to %s\n", filePath, id)
-				continue
 			}
+			return ctx.R.Success(ctx.Meta, map[string]any{
+				"planned":    true,
+				"record_id":  id,
+				"files":      files,
+				"count":      len(files),
+			}, nil)
+		}
+
+		for _, filePath := range files {
 			if err := ctx.Client.UploadFile(ctx.Cmd.Context(), id, filePath); err != nil {
 				return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "uploading %s: %v", filePath, err))
 			}
@@ -48,7 +67,10 @@ var filesUploadCmd = &cobra.Command{
 var filesListCmd = &cobra.Command{
 	Use:   "list [ID]",
 	Short: "List files in a record",
-	Args:  cobra.ExactArgs(1),
+	Long:  "List all files attached to a draft record, showing name, size, and checksum.",
+	Example: `  zenodo files list 12345
+  zenodo files list 12345 --json`,
+	Args: cobra.ExactArgs(1),
 	RunE: withAuth("files.list", func(ctx *CmdContext) error {
 		id := ctx.Args[0]
 		files, err := ctx.Client.ListFiles(ctx.Cmd.Context(), id)
@@ -71,17 +93,40 @@ var filesListCmd = &cobra.Command{
 var filesDownloadCmd = &cobra.Command{
 	Use:   "download [ID]",
 	Short: "Download files from a published record",
-	Args:  cobra.ExactArgs(1),
+	Long: `Download all files from a published record to a local directory.
+
+Use --dest to choose where files are saved (default: current directory).
+Use --latest to resolve the latest published version before downloading.`,
+	Example: `  zenodo files download 12345
+  zenodo files download 12345 --dest ./data
+  zenodo files download 12345 --latest --dest ./data`,
+	Args: cobra.ExactArgs(1),
 	RunE: withAuth("files.download", func(ctx *CmdContext) error {
 		id := ctx.Args[0]
 		dest, _ := ctx.Cmd.Flags().GetString("dest")
+		latest, _ := ctx.Cmd.Flags().GetBool("latest")
 		if dest == "" {
 			dest = "."
 		}
 
+		if latest {
+			resolved, err := ctx.Client.ResolveLatest(ctx.Cmd.Context(), id)
+			if err != nil {
+				return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "resolving latest version: %v", err))
+			}
+			if resolved != id {
+				ctx.R.Human("Resolved latest version: %s -> %s\n", id, resolved)
+				id = resolved
+			}
+		}
+
 		if ctx.App.DryRun {
 			ctx.R.Human("Would download files from %s to %s\n", id, dest)
-			return nil
+			return ctx.R.Success(ctx.Meta, map[string]any{
+				"planned":   true,
+				"record_id": id,
+				"dest":      dest,
+			}, nil)
 		}
 
 		if err := ctx.Client.DownloadRecord(ctx.Cmd.Context(), id, dest); err != nil {
@@ -101,6 +146,7 @@ var filesDownloadCmd = &cobra.Command{
 
 func init() {
 	filesDownloadCmd.Flags().String("dest", ".", "destination directory")
+	filesDownloadCmd.Flags().Bool("latest", false, "resolve and download the latest version")
 
 	filesCmd.AddCommand(filesUploadCmd)
 	filesCmd.AddCommand(filesListCmd)

@@ -13,6 +13,12 @@ type Record struct {
 	CreatedAt string         `json:"created"`
 	UpdatedAt string         `json:"updated"`
 	Status    string         `json:"status"`
+	Links     RecordLinks    `json:"links"`
+}
+
+// RecordLinks holds HATEOAS links returned by the API.
+type RecordLinks struct {
+	Latest string `json:"latest"`
 }
 
 // UnmarshalJSON custom unmarshaler to handle ID as both string and number.

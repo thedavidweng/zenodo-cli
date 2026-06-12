@@ -125,6 +125,14 @@ func requireConfirm(r *output.Renderer, meta output.RuntimeMetaInput, app *AppCo
 	return nil
 }
 
+// requireReadOnly blocks mutations when --read-only is set.
+func requireReadOnly(r *output.Renderer, meta output.RuntimeMetaInput, app *AppContext) error {
+	if app.ReadOnly {
+		return r.Failure(meta, output.Errorf(model.ErrReadOnlyViolation, "--read-only blocks this mutation"))
+	}
+	return nil
+}
+
 // parseJSON parses a JSON string into the target value.
 func parseJSON(s string, v any) error {
 	return json.Unmarshal([]byte(s), v)

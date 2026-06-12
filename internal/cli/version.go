@@ -24,6 +24,7 @@ type VersionData struct {
 var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Show version information",
+	Long:  "Print the version, commit hash, build date, and Go version.",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		app := GetAppContext(cmd.Context())
 		r := newRenderer(app, cmd)

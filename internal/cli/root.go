@@ -86,6 +86,41 @@ func newRootCmd() *cobra.Command {
 					}
 				}
 			}
+			if !app.JSON {
+				if env := os.Getenv("ZENODO_JSON"); env != "" {
+					if env == "true" || env == "1" || env == "yes" {
+						app.JSON = true
+					}
+				}
+			}
+			if !app.ReadOnly {
+				if env := os.Getenv("ZENODO_READ_ONLY"); env != "" {
+					if env == "true" || env == "1" || env == "yes" {
+						app.ReadOnly = true
+					}
+				}
+			}
+			if !app.DryRun {
+				if env := os.Getenv("ZENODO_DRY_RUN"); env != "" {
+					if env == "true" || env == "1" || env == "yes" {
+						app.DryRun = true
+					}
+				}
+			}
+			if !app.Confirm {
+				if env := os.Getenv("ZENODO_CONFIRM"); env != "" {
+					if env == "true" || env == "1" || env == "yes" {
+						app.Confirm = true
+					}
+				}
+			}
+			if !app.Quiet {
+				if env := os.Getenv("ZENODO_QUIET"); env != "" {
+					if env == "true" || env == "1" || env == "yes" {
+						app.Quiet = true
+					}
+				}
+			}
 
 			// Validation
 			if app.Retries < 0 {
@@ -107,23 +142,23 @@ func newRootCmd() *cobra.Command {
 		},
 	}
 
-	root.PersistentFlags().String("config", "", "config file path")
-	root.PersistentFlags().String("profile", "default", "profile name")
-	root.PersistentFlags().Bool("sandbox", false, "use Zenodo sandbox")
+	root.PersistentFlags().String("config", "", "config file path (YAML, default: ~/.config/zenodo-cli/config.yaml)")
+	root.PersistentFlags().String("profile", "default", "credential profile name")
+	root.PersistentFlags().Bool("sandbox", false, "use Zenodo sandbox (sandbox.zenodo.org)")
 	root.PersistentFlags().Bool("json", false, "emit JSON envelope to stdout")
-	root.PersistentFlags().Bool("pretty", false, "pretty-print JSON")
-	root.PersistentFlags().Bool("compact", false, "compact output fields")
-	root.PersistentFlags().Bool("full", false, "full normalized fields")
-	root.PersistentFlags().Bool("quiet", false, "suppress progress output")
+	root.PersistentFlags().Bool("pretty", false, "pretty-print JSON output")
+	root.PersistentFlags().Bool("compact", false, "omit null/empty fields from JSON output")
+	root.PersistentFlags().Bool("full", false, "include all fields in JSON output (overrides --compact)")
+	root.PersistentFlags().Bool("quiet", false, "suppress progress messages")
 	root.PersistentFlags().Bool("events", false, "emit NDJSON progress events to stderr")
-	root.PersistentFlags().Bool("read-only", false, "block remote mutations")
-	root.PersistentFlags().Bool("dry-run", false, "plan mutations without execution")
-	root.PersistentFlags().Bool("confirm", false, "confirm high-risk mutations")
+	root.PersistentFlags().Bool("read-only", false, "block all remote mutations")
+	root.PersistentFlags().Bool("dry-run", false, "show what would happen without executing")
+	root.PersistentFlags().Bool("confirm", false, "confirm irreversible operations")
 	root.PersistentFlags().Duration("timeout", 30*time.Second, "command/API timeout")
 	root.PersistentFlags().Int("retries", 3, "retry count for retryable failures")
-	root.PersistentFlags().Bool("no-color", false, "disable ANSI color")
-	root.PersistentFlags().Bool("verbose", false, "diagnostics to stderr")
-	root.PersistentFlags().Bool("debug", false, "debug diagnostics to stderr with secrets redacted")
+	root.PersistentFlags().Bool("no-color", false, "disable ANSI color output")
+	root.PersistentFlags().Bool("verbose", false, "emit diagnostics to stderr")
+	root.PersistentFlags().Bool("debug", false, "emit debug diagnostics to stderr (secrets redacted)")
 
 	return root
 }

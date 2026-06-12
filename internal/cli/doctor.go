@@ -18,6 +18,11 @@ type doctorCheck struct {
 var doctorCmd = &cobra.Command{
 	Use:   "doctor",
 	Short: "Check configuration and connectivity",
+	Long: `Run diagnostic checks on your zenodo-cli setup.
+
+Checks: config file exists, profile is configured, token is set, and API is reachable.`,
+	Example: `  zenodo doctor
+  zenodo doctor --json`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		app := GetAppContext(cmd.Context())
 		r := newRenderer(app, cmd)
@@ -94,6 +99,27 @@ func doctorRun(ctx context.Context, app *AppContext) []doctorCheck {
 		return checks
 	}
 	checks = append(checks, doctorCheck{Name: "token", OK: true})
+
+	// 4. Check API connectivity
+	client, _, err := getClient(app)
+	if err != nil {
+		checks = append(checks, doctorCheck{
+			Name:    "api",
+			OK:      false,
+			Message: "could not create client: " + err.Error(),
+		})
+		return checks
+	}
+	_, err = client.ListRecords(ctx)
+	if err != nil {
+		checks = append(checks, doctorCheck{
+			Name:    "api",
+			OK:      false,
+			Message: "API unreachable: " + err.Error(),
+		})
+	} else {
+		checks = append(checks, doctorCheck{Name: "api", OK: true})
+	}
 
 	return checks
 }

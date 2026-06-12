@@ -149,6 +149,23 @@ func (c *Client) ListFiles(ctx context.Context, id string) ([]RecordFile, error)
 	return resp.Entries, nil
 }
 
+// ResolveLatest returns the ID of the latest version of a record.
+func (c *Client) ResolveLatest(ctx context.Context, id string) (string, error) {
+	rec, err := c.GetRecord(ctx, id)
+	if err != nil {
+		return "", fmt.Errorf("get record: %w", err)
+	}
+	if rec.Links.Latest == "" {
+		return id, nil
+	}
+	// Follow the latest link (may redirect) to get the actual record.
+	var latestRec Record
+	if err := c.do(ctx, http.MethodGet, "/api/records/"+id+"/versions/latest", nil, &latestRec); err != nil {
+		return "", fmt.Errorf("resolve latest: %w", err)
+	}
+	return latestRec.ID, nil
+}
+
 // DownloadRecord downloads all files from a published record into destdir.
 func (c *Client) DownloadRecord(ctx context.Context, id, destdir string) error {
 	rec, err := c.GetRecord(ctx, id)

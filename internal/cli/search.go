@@ -1,8 +1,6 @@
 package cli
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 
 	"github.com/thedavidweng/zenodo-cli/internal/model"
@@ -12,7 +10,13 @@ import (
 var searchCmd = &cobra.Command{
 	Use:   "search [QUERY]",
 	Short: "Search Zenodo records",
-	Args:  cobra.ExactArgs(1),
+	Long: `Search publicly available Zenodo records using a full-text query.
+
+This command does not require authentication. Use --page and --size for pagination.`,
+	Example: `  zenodo search "machine learning"
+  zenodo search "CRISPR" --page 2 --size 20
+  zenodo search "climate" --json`,
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		app := GetAppContext(cmd.Context())
 		r := newRenderer(app, cmd)
@@ -36,7 +40,7 @@ var searchCmd = &cobra.Command{
 		for _, rec := range resp.Hits.Hits {
 			r.Human("[%s] %s\n", rec.ID, rec.Metadata.Title)
 		}
-		fmt.Fprintf(cmd.ErrOrStderr(), "\nTotal: %d\n", resp.Hits.Total)
+		r.Human("\nTotal: %d\n", resp.Hits.Total)
 		return nil
 	},
 }
