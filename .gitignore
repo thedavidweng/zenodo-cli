@@ -1,6 +1,6 @@
 bin/
 dist/
 *.tmp
-zenodo
+/zenodo
 .claude/
 .env
