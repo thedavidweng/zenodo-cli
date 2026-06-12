@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -111,6 +112,9 @@ func TestSaveAndLoadRoundTrip(t *testing.T) {
 }
 
 func TestSaveCreatesDirWith0700(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("skipping permission test on Windows")
+	}
 	dir := tempDir(t)
 	path := filepath.Join(dir, "subdir", "config.yaml")
 
@@ -130,6 +134,9 @@ func TestSaveCreatesDirWith0700(t *testing.T) {
 }
 
 func TestSaveFilePerms0600(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("skipping permission test on Windows")
+	}
 	dir := tempDir(t)
 	path := filepath.Join(dir, "config.yaml")
 
