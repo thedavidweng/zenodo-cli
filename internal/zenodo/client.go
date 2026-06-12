@@ -16,11 +16,11 @@ import (
 
 // Client communicates with a Zenodo InvenioRDM API.
 type Client struct {
-	BaseURL          string
-	Token            string
-	HTTPClient       *http.Client
-	Retries          int
-	RequestInterval  time.Duration
+	BaseURL         string
+	Token           string
+	HTTPClient      *http.Client
+	Retries         int
+	RequestInterval time.Duration
 }
 
 // NewClient creates a Client with sensible defaults.
@@ -161,37 +161,43 @@ func (c *Client) DownloadRecord(ctx context.Context, id, destdir string) error {
 	}
 
 	for _, f := range rec.Files {
-		// Zenodo provides files at /api/records/{id}/files/{key}/content
-		url := fmt.Sprintf("%s/api/records/%s/files/%s/content", c.BaseURL, id, f.Key)
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-		if err != nil {
-			return fmt.Errorf("create request for %s: %w", f.Key, err)
+		if err := c.downloadFile(ctx, id, destdir, f.Key); err != nil {
+			return err
 		}
-		req.Header.Set("Authorization", "Bearer "+c.Token)
-
-		resp, err := c.HTTPClient.Do(req)
-		if err != nil {
-			return fmt.Errorf("download %s: %w", f.Key, err)
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode >= 400 {
-			resp.Body.Close()
-			return fmt.Errorf("download %s: HTTP %d", f.Key, resp.StatusCode)
-		}
-
-		destPath := filepath.Join(destdir, f.Key)
-		out, err := os.Create(destPath)
-		if err != nil {
-			return fmt.Errorf("create file %s: %w", destPath, err)
-		}
-		if _, err := io.Copy(out, resp.Body); err != nil {
-			out.Close()
-			return fmt.Errorf("write file %s: %w", destPath, err)
-		}
-		out.Close()
 	}
 
+	return nil
+}
+
+// downloadFile downloads a single file from a record.
+func (c *Client) downloadFile(ctx context.Context, id, destdir, key string) error {
+	url := fmt.Sprintf("%s/api/records/%s/files/%s/content", c.BaseURL, id, key)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return fmt.Errorf("create request for %s: %w", key, err)
+	}
+	req.Header.Set("Authorization", "Bearer "+c.Token)
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("download %s: %w", key, err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode >= 400 {
+		return fmt.Errorf("download %s: HTTP %d", key, resp.StatusCode)
+	}
+
+	destPath := filepath.Join(destdir, key)
+	out, err := os.Create(destPath)
+	if err != nil {
+		return fmt.Errorf("create file %s: %w", destPath, err)
+	}
+	defer func() { _ = out.Close() }()
+
+	if _, err := io.Copy(out, resp.Body); err != nil {
+		return fmt.Errorf("write file %s: %w", destPath, err)
+	}
 	return nil
 }
 
@@ -312,10 +318,10 @@ func (c *Client) handleResponse(resp *http.Response, result any) error {
 	if resp.StatusCode >= 400 {
 		// Try to parse structured error
 		var apiErr struct {
-			Message string         `json:"message"`
-			Status  int            `json:"status"`
+			Message string `json:"message"`
+			Status  int    `json:"status"`
 			Errors  []struct {
-				Field   string `json:"field"`
+				Field    string   `json:"field"`
 				Messages []string `json:"messages"`
 			} `json:"errors"`
 		}

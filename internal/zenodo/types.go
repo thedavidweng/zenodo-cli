@@ -38,11 +38,11 @@ func (r *Record) UnmarshalJSON(data []byte) error {
 
 // RecordMetadata holds the descriptive metadata for a record.
 type RecordMetadata struct {
-	Title            string       `json:"title"`
-	Description      string       `json:"description"`
-	Creators         []Creator    `json:"creators"`
-	PublicationDate  string       `json:"publication_date"`
-	ResourceType     ResourceType `json:"resource_type"`
+	Title           string       `json:"title"`
+	Description     string       `json:"description"`
+	Creators        []Creator    `json:"creators"`
+	PublicationDate string       `json:"publication_date"`
+	ResourceType    ResourceType `json:"resource_type"`
 }
 
 // Creator represents a record creator/contributor.
