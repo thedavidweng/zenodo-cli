@@ -155,6 +155,45 @@ func TestSaveFilePerms0600(t *testing.T) {
 	}
 }
 
+func TestSaveOverwritesExisting(t *testing.T) {
+	dir := tempDir(t)
+	path := filepath.Join(dir, "config.yaml")
+
+	// First save.
+	cfg1 := &Config{
+		CurrentProfile: "default",
+		Profiles: map[string]*Profile{
+			"default": {Token: "old-token", Sandbox: false},
+		},
+	}
+	if err := Save(path, cfg1); err != nil {
+		t.Fatalf("first Save: %v", err)
+	}
+
+	// Second save — overwrites the existing file.
+	cfg2 := &Config{
+		CurrentProfile: "default",
+		Profiles: map[string]*Profile{
+			"default": {Token: "new-token", Sandbox: true},
+		},
+	}
+	if err := Save(path, cfg2); err != nil {
+		t.Fatalf("second Save: %v", err)
+	}
+
+	// Verify the overwrite took effect.
+	loaded, err := Load(path)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if loaded.Profiles["default"].Token != "new-token" {
+		t.Errorf("token = %q, want new-token", loaded.Profiles["default"].Token)
+	}
+	if !loaded.Profiles["default"].Sandbox {
+		t.Error("expected sandbox=true after overwrite")
+	}
+}
+
 func TestGetProfile(t *testing.T) {
 	cfg := &Config{
 		CurrentProfile: "default",

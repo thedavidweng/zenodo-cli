@@ -74,6 +74,9 @@ func Save(path string, cfg *Config) error {
 	if err := tmp.Close(); err != nil {
 		return fmt.Errorf("close temp file: %w", err)
 	}
+	// Remove existing file before rename — required on Windows where
+	// os.Rename fails if the destination already exists.
+	os.Remove(path)
 	if err := os.Rename(tmpPath, path); err != nil {
 		return fmt.Errorf("rename config: %w", err)
 	}
