@@ -32,7 +32,7 @@
 
 Zenodo migrated its infrastructure from the legacy deposit API to InvenioRDM in 2023. The old `/api/deposit/depositions` endpoint now returns 404. Every existing CLI tool was built against the deprecated API and no longer works for uploads or record management.
 
-zenodo-cli is the first CLI built on the new InvenioRDM API (`/api/records`).
+zenodo-cli is a single-binary CLI built on the new InvenioRDM API (`/api/records`) with full coverage of the Zenodo API surface.
 
 | Tool | Language | Stars | Last Updated | API Version | Upload Works | CLI | Status |
 |------|----------|-------|--------------|-------------|-------------|-----|--------|
