@@ -36,7 +36,7 @@ zenodo-cli is a single-binary CLI built on the new InvenioRDM API (`/api/records
 
 | Tool | Language | Stars | Last Updated | API Version | Upload Works | CLI | Status |
 |------|----------|-------|--------------|-------------|-------------|-----|--------|
-| **[zenodo-cli](https://github.com/thedavidweng/zenodo-cli)** | Go | -- | 2026-06 | InvenioRDM (new) | Yes | Yes | Active |
+| **zenodo-cli** | Go | -- | 2026-06 | InvenioRDM (new) | Yes | Yes | Active |
 | [zenodo-client](https://github.com/cthoyt/zenodo-client) (cthoyt) | Python | 45 | 2026-04 | Mixed (old+new) | No | Yes | Upload broken |
 | [zenodo](https://github.com/cheminfo/zenodo) (cheminfo) | Node.js | -- | 2026-04 | InvenioRDM (new) | Yes | No | Library only |
 | [zenodraft](https://github.com/zenodraft/zenodraft) | Node.js | 8 | 2024-04 | Old (deprecated) | No | Yes | 19 open issues |
