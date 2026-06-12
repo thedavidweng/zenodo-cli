@@ -49,6 +49,10 @@ zenodo-cli is a single-binary CLI built on the new InvenioRDM API (`/api/records
 - `zenodo` (cheminfo) uses the new InvenioRDM API and supports upload, but it is a library -- not a CLI tool.
 - All other tools (`zenodraft`, `zotzen-lib`, `zenodo-lib`, `zenodo-cli` by opendeved) target the old `/api/deposit/depositions` which no longer exists.
 
+## Used in production
+
+- [全国村界数据集 / China Village Boundaries Dataset](https://zenodo.org/records/20664361) -- 875,140 records across 58 Shapefile datasets, uploaded and published with zenodo-cli.
+
 ## Install
 
 ### Homebrew
