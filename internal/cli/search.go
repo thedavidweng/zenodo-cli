@@ -12,9 +12,8 @@ var searchCmd = &cobra.Command{
 	Short: "Search Zenodo records",
 	Long: `Search publicly available Zenodo records using a full-text query.
 
-This command does not require authentication. Use --page and --size for pagination.`,
+This command does not require authentication.`,
 	Example: `  zenodo search "machine learning"
-  zenodo search "CRISPR" --page 2 --size 20
   zenodo search "climate" --json`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -22,7 +21,7 @@ This command does not require authentication. Use --page and --size for paginati
 		r := newRenderer(app, cmd)
 		meta := metaInput(app, "search")
 
-		client, _, err := getClient(app)
+		client, err := getClient(app)
 		if err != nil {
 			return r.Failure(meta, output.Errorf(model.ErrConfig, "%v", err))
 		}
@@ -45,7 +44,3 @@ This command does not require authentication. Use --page and --size for paginati
 	},
 }
 
-func init() {
-	searchCmd.Flags().Int("page", 1, "page number")
-	searchCmd.Flags().Int("size", 10, "results per page")
-}

@@ -37,16 +37,11 @@ func newRootCmd() *cobra.Command {
 			app.Compact, _ = cmd.Flags().GetBool("compact")
 			app.Full, _ = cmd.Flags().GetBool("full")
 			app.Quiet, _ = cmd.Flags().GetBool("quiet")
-			app.Events, _ = cmd.Flags().GetBool("events")
 			app.ReadOnly, _ = cmd.Flags().GetBool("read-only")
 			app.DryRun, _ = cmd.Flags().GetBool("dry-run")
 			app.Confirm, _ = cmd.Flags().GetBool("confirm")
 			app.Timeout, _ = cmd.Flags().GetDuration("timeout")
 			app.Retries, _ = cmd.Flags().GetInt("retries")
-			app.NoColor, _ = cmd.Flags().GetBool("no-color")
-			app.Verbose, _ = cmd.Flags().GetBool("verbose")
-			app.Debug, _ = cmd.Flags().GetBool("debug")
-
 			// Environment variable overrides (checked after flags)
 			if app.ConfigFile == "" {
 				if env := os.Getenv("ZENODO_CONFIG"); env != "" {
@@ -76,13 +71,6 @@ func newRootCmd() *cobra.Command {
 				if env := os.Getenv("ZENODO_RETRIES"); env != "" {
 					if n, err := strconv.Atoi(env); err == nil {
 						app.Retries = n
-					}
-				}
-			}
-			if !app.Debug {
-				if env := os.Getenv("ZENODO_DEBUG"); env != "" {
-					if env == "true" || env == "1" || env == "yes" {
-						app.Debug = true
 					}
 				}
 			}
@@ -150,16 +138,11 @@ func newRootCmd() *cobra.Command {
 	root.PersistentFlags().Bool("compact", false, "omit null/empty fields from JSON output")
 	root.PersistentFlags().Bool("full", false, "include all fields in JSON output (overrides --compact)")
 	root.PersistentFlags().Bool("quiet", false, "suppress progress messages")
-	root.PersistentFlags().Bool("events", false, "emit NDJSON progress events to stderr")
 	root.PersistentFlags().Bool("read-only", false, "block all remote mutations")
 	root.PersistentFlags().Bool("dry-run", false, "show what would happen without executing")
 	root.PersistentFlags().Bool("confirm", false, "confirm irreversible operations")
 	root.PersistentFlags().Duration("timeout", 5*time.Minute, "command/API timeout")
 	root.PersistentFlags().Int("retries", 3, "retry count for retryable failures")
-	root.PersistentFlags().Bool("no-color", false, "disable ANSI color output")
-	root.PersistentFlags().Bool("verbose", false, "emit diagnostics to stderr")
-	root.PersistentFlags().Bool("debug", false, "emit debug diagnostics to stderr (secrets redacted)")
-
 	return root
 }
 

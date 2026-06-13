@@ -26,8 +26,6 @@ type Renderer struct {
 	Compact bool
 	Full    bool
 	Quiet   bool
-	NoColor bool
-	Verbose bool
 }
 
 // Success writes a successful envelope.
@@ -67,14 +65,6 @@ func (r *Renderer) Human(format string, args ...any) {
 		return
 	}
 	fmt.Fprintf(r.Out, format+"\n", args...)
-}
-
-// Diagnostics writes diagnostic output to Err. Only written when Verbose is true.
-func (r *Renderer) Diagnostics(format string, args ...any) {
-	if !r.Verbose {
-		return
-	}
-	fmt.Fprintf(r.Err, format+"\n", args...)
 }
 
 func (r *Renderer) buildMeta(input RuntimeMetaInput, warnings []string) model.Meta {

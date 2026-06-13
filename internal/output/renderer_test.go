@@ -169,24 +169,6 @@ func TestRendererHumanNotSuppressed(t *testing.T) {
 	}
 }
 
-func TestRendererDiagnosticsOnlyVerbose(t *testing.T) {
-	var out, errBuf bytes.Buffer
-
-	// Not verbose: should not print
-	r := Renderer{Out: &out, Err: &errBuf, Verbose: false}
-	r.Diagnostics("debug info %d", 42)
-	if out.Len() > 0 || errBuf.Len() > 0 {
-		t.Error("Diagnostics should not write when Verbose=false")
-	}
-
-	// Verbose: should print to stderr
-	r2 := Renderer{Out: &out, Err: &errBuf, Verbose: true}
-	r2.Diagnostics("debug info %d", 42)
-	if !strings.Contains(errBuf.String(), "debug info 42") {
-		t.Errorf("Diagnostics output = %q, should contain 'debug info 42'", errBuf.String())
-	}
-}
-
 func TestCompactJSONRemovesEmpty(t *testing.T) {
 	var out bytes.Buffer
 	r := Renderer{

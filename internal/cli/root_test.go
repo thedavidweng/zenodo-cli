@@ -22,8 +22,8 @@ func TestRootCommandHasGlobalFlags(t *testing.T) {
 
 	flags := []string{
 		"config", "profile", "sandbox", "json", "pretty", "compact", "full",
-		"quiet", "events", "read-only", "dry-run", "confirm",
-		"timeout", "retries", "no-color", "verbose", "debug",
+		"quiet", "read-only", "dry-run", "confirm",
+		"timeout", "retries",
 	}
 
 	for _, name := range flags {
@@ -53,7 +53,6 @@ func TestRootCommandPersistentPreRunEReadsFlags(t *testing.T) {
 		"--profile", "sb",
 		"--sandbox",
 		"--json",
-		"--debug",
 		"--timeout", "10s",
 		"--retries", "5",
 	})
@@ -73,7 +72,6 @@ func TestRootCommandPersistentPreRunEReadsFlags(t *testing.T) {
 		"--profile", "sb",
 		"--sandbox",
 		"--json",
-		"--debug",
 		"--timeout", "10s",
 		"--retries", "5",
 		"dummy",
@@ -96,9 +94,6 @@ func TestRootCommandPersistentPreRunEReadsFlags(t *testing.T) {
 	if !capturedApp.JSON {
 		t.Error("expected JSON=true")
 	}
-	if !capturedApp.Debug {
-		t.Error("expected Debug=true")
-	}
 	if capturedApp.Timeout != 10*time.Second {
 		t.Errorf("Timeout = %v, want 10s", capturedApp.Timeout)
 	}
@@ -112,7 +107,6 @@ func TestRootCommandEnvOverrides(t *testing.T) {
 
 	t.Setenv("ZENODO_TOKEN", "env-tok")
 	t.Setenv("ZENODO_SANDBOX", "true")
-	t.Setenv("ZENODO_DEBUG", "true")
 	t.Setenv("ZENODO_TIMEOUT", "45s")
 	t.Setenv("ZENODO_RETRIES", "7")
 
@@ -134,9 +128,6 @@ func TestRootCommandEnvOverrides(t *testing.T) {
 	}
 	if !capturedApp.Sandbox {
 		t.Error("expected Sandbox=true from ZENODO_SANDBOX")
-	}
-	if !capturedApp.Debug {
-		t.Error("expected Debug=true from ZENODO_DEBUG")
 	}
 	if capturedApp.Timeout != 45*time.Second {
 		t.Errorf("Timeout = %v, want 45s", capturedApp.Timeout)
