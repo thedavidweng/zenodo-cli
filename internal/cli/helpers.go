@@ -22,7 +22,6 @@ func newRenderer(app *AppContext, cmd *cobra.Command) output.Renderer {
 		Compact: app.Compact,
 		Full:    app.Full,
 		Quiet:   app.Quiet,
-		Verbose: app.Verbose,
 	}
 }
 
@@ -56,7 +55,7 @@ func withAuth(command string, fn CmdFunc) func(cmd *cobra.Command, args []string
 		r := newRenderer(app, cmd)
 		meta := metaInput(app, command)
 
-		client, _, err := getClient(app)
+		client, err := getClient(app)
 		if err != nil {
 			return r.Failure(meta, output.Errorf(model.ErrConfig, "%v", err))
 		}
@@ -68,19 +67,19 @@ func withAuth(command string, fn CmdFunc) func(cmd *cobra.Command, args []string
 }
 
 // getClient creates a Zenodo client from the current app context and config.
-func getClient(app *AppContext) (*zenodo.Client, *config.Config, error) {
+func getClient(app *AppContext) (*zenodo.Client, error) {
 	cfgPath := app.ConfigFile
 	if cfgPath == "" {
 		cfgPath = config.DefaultConfigPath()
 	}
 	cfg, err := config.Load(cfgPath)
 	if err != nil {
-		return nil, nil, fmt.Errorf("not configured. Run 'zenodo auth login' to get started")
+		return nil, fmt.Errorf("not configured. Run 'zenodo auth login' to get started")
 	}
 
 	profile, err := cfg.GetProfile(app.Profile)
 	if err != nil {
-		return nil, cfg, fmt.Errorf("not authenticated. Run 'zenodo auth login' to get started")
+		return nil, fmt.Errorf("not authenticated. Run 'zenodo auth login' to get started")
 	}
 
 	creds := config.CredentialsFromProfileAndEnv(profile)
@@ -100,7 +99,7 @@ func getClient(app *AppContext) (*zenodo.Client, *config.Config, error) {
 		client.BaseURL = profile.Endpoints.API
 	}
 
-	return client, cfg, nil
+	return client, nil
 }
 
 // requireAuth checks that the client is authenticated.

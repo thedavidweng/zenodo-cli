@@ -21,7 +21,7 @@ This command does not require authentication.`,
 		r := newRenderer(app, cmd)
 		meta := metaInput(app, "search")
 
-		client, _, err := getClient(app)
+		client, err := getClient(app)
 		if err != nil {
 			return r.Failure(meta, output.Errorf(model.ErrConfig, "%v", err))
 		}

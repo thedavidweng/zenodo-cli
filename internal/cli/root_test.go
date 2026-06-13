@@ -23,7 +23,7 @@ func TestRootCommandHasGlobalFlags(t *testing.T) {
 	flags := []string{
 		"config", "profile", "sandbox", "json", "pretty", "compact", "full",
 		"quiet", "read-only", "dry-run", "confirm",
-		"timeout", "retries", "no-color", "verbose",
+		"timeout", "retries",
 	}
 
 	for _, name := range flags {

@@ -23,7 +23,6 @@ func TestNewRenderer(t *testing.T) {
 		Compact: false,
 		Full:    false,
 		Quiet:   true,
-		Verbose: true,
 	}
 	cmd := &cobra.Command{}
 	cmd.SetOut(&bytes.Buffer{})
@@ -38,9 +37,6 @@ func TestNewRenderer(t *testing.T) {
 	}
 	if !r.Quiet {
 		t.Error("expected Quiet=true")
-	}
-	if !r.Verbose {
-		t.Error("expected Verbose=true")
 	}
 }
 

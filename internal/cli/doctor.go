@@ -101,7 +101,7 @@ func doctorRun(ctx context.Context, app *AppContext) []doctorCheck {
 	checks = append(checks, doctorCheck{Name: "token", OK: true})
 
 	// 4. Check API connectivity
-	client, _, err := getClient(app)
+	client, err := getClient(app)
 	if err != nil {
 		checks = append(checks, doctorCheck{
 			Name:    "api",

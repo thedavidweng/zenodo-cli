@@ -26,8 +26,6 @@ type AppContext struct {
 	Confirm    bool
 	Timeout    time.Duration
 	Retries    int
-	NoColor    bool
-	Verbose    bool
 	RequestID  string
 	StartedAt  time.Time
 }

@@ -26,7 +26,6 @@ type Renderer struct {
 	Compact bool
 	Full    bool
 	Quiet   bool
-	Verbose bool
 }
 
 // Success writes a successful envelope.

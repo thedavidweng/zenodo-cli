@@ -42,9 +42,6 @@ func newRootCmd() *cobra.Command {
 			app.Confirm, _ = cmd.Flags().GetBool("confirm")
 			app.Timeout, _ = cmd.Flags().GetDuration("timeout")
 			app.Retries, _ = cmd.Flags().GetInt("retries")
-			app.NoColor, _ = cmd.Flags().GetBool("no-color")
-			app.Verbose, _ = cmd.Flags().GetBool("verbose")
-
 			// Environment variable overrides (checked after flags)
 			if app.ConfigFile == "" {
 				if env := os.Getenv("ZENODO_CONFIG"); env != "" {
@@ -146,9 +143,6 @@ func newRootCmd() *cobra.Command {
 	root.PersistentFlags().Bool("confirm", false, "confirm irreversible operations")
 	root.PersistentFlags().Duration("timeout", 5*time.Minute, "command/API timeout")
 	root.PersistentFlags().Int("retries", 3, "retry count for retryable failures")
-	root.PersistentFlags().Bool("no-color", false, "disable ANSI color output")
-	root.PersistentFlags().Bool("verbose", false, "emit diagnostics to stderr")
-
 	return root
 }
 
