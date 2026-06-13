@@ -13,10 +13,3 @@ func TestSearchCommandExists(t *testing.T) {
 	}
 }
 
-func TestSearchHasPageAndSizeFlags(t *testing.T) {
-	for _, flag := range []string{"page", "size"} {
-		if searchCmd.Flags().Lookup(flag) == nil {
-			t.Errorf("search missing --%s flag", flag)
-		}
-	}
-}

@@ -21,7 +21,6 @@ type AppContext struct {
 	Compact    bool
 	Full       bool
 	Quiet      bool
-	Events     bool
 	ReadOnly   bool
 	DryRun     bool
 	Confirm    bool
@@ -29,7 +28,6 @@ type AppContext struct {
 	Retries    int
 	NoColor    bool
 	Verbose    bool
-	Debug      bool
 	RequestID  string
 	StartedAt  time.Time
 }

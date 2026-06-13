@@ -13,8 +13,8 @@ import (
 	"time"
 )
 
-// FakeRecord is the internal storage representation.
-type FakeRecord struct {
+// fakeRecord is the internal storage representation.
+type fakeRecord struct {
 	ID           string
 	Title        string
 	Desc         string
@@ -34,7 +34,7 @@ type FakeZenodo struct {
 	Server     *httptest.Server
 	Token      string
 	mu         sync.Mutex
-	records    map[string]*FakeRecord
+	records    map[string]*fakeRecord
 	nextID     int
 	ValidToken string
 }
@@ -45,7 +45,7 @@ func NewFakeZenodo(token string) *FakeZenodo {
 	fz := &FakeZenodo{
 		Token:      token,
 		ValidToken: token,
-		records:    make(map[string]*FakeRecord),
+		records:    make(map[string]*fakeRecord),
 		nextID:     1,
 	}
 	mux := http.NewServeMux()
@@ -176,7 +176,7 @@ func (fz *FakeZenodo) handleCreateRecord(w http.ResponseWriter, r *http.Request)
 	fz.nextID++
 
 	now := time.Now().UTC().Format(time.RFC3339)
-	rec := &FakeRecord{
+	rec := &fakeRecord{
 		ID:           id,
 		Status:       "draft",
 		FileContents: make(map[string][]byte),
@@ -423,7 +423,7 @@ func (fz *FakeZenodo) handleNewVersion(w http.ResponseWriter, id string) {
 	fz.nextID++
 
 	now := time.Now().UTC().Format(time.RFC3339)
-	newRec := &FakeRecord{
+	newRec := &fakeRecord{
 		ID:           newID,
 		Title:        rec.Title,
 		Desc:         rec.Desc,
@@ -571,7 +571,7 @@ func (fz *FakeZenodo) handleDownloadFile(w http.ResponseWriter, recordID, filena
 	w.Write(content)
 }
 
-func (fz *FakeZenodo) recordToJSON(rec *FakeRecord) map[string]any {
+func (fz *FakeZenodo) recordToJSON(rec *fakeRecord) map[string]any {
 	files := make([]map[string]any, 0, len(rec.Files))
 	for _, f := range rec.Files {
 		files = append(files, map[string]any{

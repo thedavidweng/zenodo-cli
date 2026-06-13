@@ -23,7 +23,6 @@ func TestNewRenderer(t *testing.T) {
 		Compact: false,
 		Full:    false,
 		Quiet:   true,
-		NoColor: true,
 		Verbose: true,
 	}
 	cmd := &cobra.Command{}
@@ -39,9 +38,6 @@ func TestNewRenderer(t *testing.T) {
 	}
 	if !r.Quiet {
 		t.Error("expected Quiet=true")
-	}
-	if !r.NoColor {
-		t.Error("expected NoColor=true")
 	}
 	if !r.Verbose {
 		t.Error("expected Verbose=true")

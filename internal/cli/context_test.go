@@ -30,7 +30,6 @@ func TestWithAppContextAndGetAppContext(t *testing.T) {
 		Sandbox:    true,
 		JSON:       true,
 		Timeout:    10 * time.Second,
-		Debug:      true,
 	}
 
 	ctx = WithAppContext(ctx, app)
@@ -52,9 +51,6 @@ func TestWithAppContextAndGetAppContext(t *testing.T) {
 	}
 	if got.Timeout != 10*time.Second {
 		t.Errorf("Timeout = %v, want 10s", got.Timeout)
-	}
-	if !got.Debug {
-		t.Error("expected Debug=true")
 	}
 }
 

@@ -22,7 +22,6 @@ func newRenderer(app *AppContext, cmd *cobra.Command) output.Renderer {
 		Compact: app.Compact,
 		Full:    app.Full,
 		Quiet:   app.Quiet,
-		NoColor: app.NoColor,
 		Verbose: app.Verbose,
 	}
 }
@@ -43,7 +42,6 @@ type CmdContext struct {
 	Cmd    *cobra.Command
 	Args   []string
 	Client *zenodo.Client
-	Config *config.Config
 	R      output.Renderer
 	Meta   output.RuntimeMetaInput
 }
@@ -58,14 +56,14 @@ func withAuth(command string, fn CmdFunc) func(cmd *cobra.Command, args []string
 		r := newRenderer(app, cmd)
 		meta := metaInput(app, command)
 
-		client, cfg, err := getClient(app)
+		client, _, err := getClient(app)
 		if err != nil {
 			return r.Failure(meta, output.Errorf(model.ErrConfig, "%v", err))
 		}
 		if err := requireAuth(&r, meta, client); err != nil {
 			return err
 		}
-		return fn(&CmdContext{App: app, Cmd: cmd, Args: args, Client: client, Config: cfg, R: r, Meta: meta})
+		return fn(&CmdContext{App: app, Cmd: cmd, Args: args, Client: client, R: r, Meta: meta})
 	}
 }
 
