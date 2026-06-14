@@ -394,7 +394,7 @@ func (c *Client) doRaw(ctx context.Context, method, path string, data []byte, re
 
 // handleResponse reads the response, handles errors, and decodes into result.
 func (c *Client) handleResponse(resp *http.Response, result any) error {
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
