@@ -155,11 +155,19 @@ func TestCredentialsDefaults(t *testing.T) {
 }
 
 func TestCredentialsSandboxDefault(t *testing.T) {
-	origSandbox := os.Getenv("ZENODO_SANDBOX")
-	origURL := os.Getenv("ZENODO_API_URL")
+	origSandbox, origSandboxSet := os.LookupEnv("ZENODO_SANDBOX")
+	origURL, origURLSet := os.LookupEnv("ZENODO_API_URL")
 	defer func() {
-		_ = os.Setenv("ZENODO_SANDBOX", origSandbox)
-		_ = os.Setenv("ZENODO_API_URL", origURL)
+		if origSandboxSet {
+			_ = os.Setenv("ZENODO_SANDBOX", origSandbox)
+		} else {
+			_ = os.Unsetenv("ZENODO_SANDBOX")
+		}
+		if origURLSet {
+			_ = os.Setenv("ZENODO_API_URL", origURL)
+		} else {
+			_ = os.Unsetenv("ZENODO_API_URL")
+		}
 	}()
 
 	_ = os.Unsetenv("ZENODO_SANDBOX")
@@ -188,8 +196,14 @@ func TestIsAuthenticated(t *testing.T) {
 }
 
 func TestCredentialsSandboxEnvBoolParsing(t *testing.T) {
-	origSandbox := os.Getenv("ZENODO_SANDBOX")
-	defer func() { _ = os.Setenv("ZENODO_SANDBOX", origSandbox) }()
+	origSandbox, origSandboxSet := os.LookupEnv("ZENODO_SANDBOX")
+	defer func() {
+		if origSandboxSet {
+			_ = os.Setenv("ZENODO_SANDBOX", origSandbox)
+		} else {
+			_ = os.Unsetenv("ZENODO_SANDBOX")
+		}
+	}()
 
 	tests := []struct {
 		envVal string

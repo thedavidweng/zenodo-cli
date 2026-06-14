@@ -75,7 +75,6 @@ The current schema version is `2026-06-11`.
 | `FILESYSTEM_ERROR` | filesystem | Local file operation failed |
 | `CONFIG_ERROR` | config | Configuration error |
 | `INTERRUPTED` | — | Process interrupted (SIGINT) |
-| `PARTIAL_FAILURE` | api | Some operations in a bulk request failed |
 
 ## Exit Codes
 
