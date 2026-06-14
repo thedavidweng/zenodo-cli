@@ -1,12 +1,46 @@
-# zenodo-cli
+<h1 align="center">zenodo-cli</h1>
 
-[![CI](https://github.com/thedavidweng/zenodo-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/thedavidweng/zenodo-cli/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/thedavidweng/zenodo-cli)](https://github.com/thedavidweng/zenodo-cli/releases)
-[![Go Reference](https://pkg.go.dev/badge/github.com/thedavidweng/zenodo-cli.svg)](https://pkg.go.dev/github.com/thedavidweng/zenodo-cli)
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue)](https://github.com/thedavidweng/zenodo-cli/blob/main/LICENSE)
-[![Go](https://img.shields.io/badge/go-1.26.3-00ADD8?logo=go)](https://go.dev/)
+<p align="center">
+  Agent-friendly Zenodo CLI for records, files, search, and InvenioRDM API access.
+</p>
 
-Agent-friendly Zenodo CLI. Single-binary tool for deposit management, file upload/download, and full InvenioRDM API access.
+<p align="center">
+  <a href="https://github.com/thedavidweng/zenodo-cli/actions/workflows/ci.yml"><img src="https://github.com/thedavidweng/zenodo-cli/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/thedavidweng/zenodo-cli/releases"><img src="https://img.shields.io/github/v/release/thedavidweng/zenodo-cli" alt="Release"></a>
+  <a href="https://pkg.go.dev/github.com/thedavidweng/zenodo-cli"><img src="https://pkg.go.dev/badge/github.com/thedavidweng/zenodo-cli.svg" alt="Go Reference"></a>
+  <a href="https://github.com/thedavidweng/zenodo-cli/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue" alt="License"></a>
+  <img src="https://img.shields.io/badge/go-1.26.3-00ADD8?logo=go" alt="Go">
+</p>
+
+`zenodo-cli` is a single-binary CLI for creating Zenodo records, uploading files, publishing drafts, searching public records, and calling the current InvenioRDM API directly.
+
+## Highlights
+
+- Single binary: no runtime, containers, or Python environment required
+- JSON-first: `--json` on every command with a consistent envelope
+- Safety gates: `--read-only`, `--dry-run`, and `--confirm` for remote mutations
+- Agent-ready: predictable exit codes, error categories, request IDs, and secret redaction
+- Sandbox support: test against `sandbox.zenodo.org` with `--sandbox` or `ZENODO_SANDBOX=1`
+
+## Why
+
+Zenodo moved from the legacy deposit API to InvenioRDM in 2023. Tools built around `/api/deposit/depositions` can still install cleanly while failing on uploads and record management. `zenodo-cli` is built directly on the current `/api/records` API surface.
+
+**Used in production:** [全国村界数据集 / China Village Boundaries Dataset](https://zenodo.org/records/20664361) was uploaded and published with `zenodo-cli`: 875,140 records across 58 Shapefile datasets.
+
+<details>
+<summary>Comparison with older Zenodo tools</summary>
+
+| Tool | Language | API Version | Upload Works | CLI | Status |
+|------|----------|-------------|---------------|-----|--------|
+| **zenodo-cli** | Go | InvenioRDM | Yes | Yes | Active |
+| [zenodo-client](https://github.com/cthoyt/zenodo-client) | Python | Mixed old/new | No | Yes | Upload broken |
+| [zenodo](https://github.com/cheminfo/zenodo) | Node.js | InvenioRDM | Yes | No | Library only |
+| [zenodraft](https://github.com/zenodraft/zenodraft) | Node.js | Old deposit API | No | Yes | Deprecated API |
+| [zotzen-lib](https://github.com/OpenDevEd/zotzen-lib) | Node.js | Old deposit API | No | Yes | Unmaintained |
+| [zenodo-cli](https://github.com/OpenDevEd/zenodo-cli) | Node.js | Old deposit API | No | Yes | Deprecated |
+
+</details>
 
 ## Quickstart
 
@@ -29,11 +63,11 @@ The installer detects Homebrew automatically and uses it when available (recomme
 <details>
 <summary>Other installation methods</summary>
 
-**Homebrew (macOS/Linux):**
+**Homebrew Cask (macOS/Linux):**
 
 ```shell
 brew tap thedavidweng/tap
-brew install zenodo
+brew install --cask zenodo
 ```
 
 **Go:**
@@ -74,8 +108,8 @@ zenodo records publish RECORD_ID --confirm
 ### Uninstall
 
 ```shell
-# Homebrew
-brew uninstall zenodo
+# Homebrew Cask
+brew uninstall --cask zenodo
 
 # install.sh
 curl -fsSL https://raw.githubusercontent.com/thedavidweng/zenodo-cli/main/install.sh | sh -s uninstall

@@ -12,4 +12,3 @@ func TestSearchCommandExists(t *testing.T) {
 		t.Error("search should have RunE")
 	}
 }
-

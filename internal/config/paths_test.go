@@ -45,4 +45,3 @@ func TestDefaultConfigPathUsesXDG(t *testing.T) {
 		t.Errorf("DefaultConfigPath() = %q, want %q", path, want)
 	}
 }
-

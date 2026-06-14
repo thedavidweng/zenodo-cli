@@ -30,7 +30,8 @@ function Install-Zenodo {
     $version = Resolve-Version
     Step "Latest version: $version"
 
-    $asset = "${Binary}_${version}_windows_${arch}.zip"
+    $assetVersion = $version -replace "^v", ""
+    $asset = "${Binary}_${assetVersion}_windows_${arch}.zip"
     $url = "https://github.com/$Repo/releases/download/$version/$asset"
 
     $installDir = if ($env:ZENODO_INSTALL_DIR) { $env:ZENODO_INSTALL_DIR } else {

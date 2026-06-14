@@ -43,4 +43,3 @@ This command does not require authentication.`,
 		return nil
 	},
 }
-

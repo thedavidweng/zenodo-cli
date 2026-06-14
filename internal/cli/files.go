@@ -39,10 +39,10 @@ The record must be a draft (not published).`,
 				ctx.R.Human("Would upload %s to %s\n", filePath, id)
 			}
 			return ctx.R.Success(ctx.Meta, map[string]any{
-				"planned":    true,
-				"record_id":  id,
-				"files":      files,
-				"count":      len(files),
+				"planned":   true,
+				"record_id": id,
+				"files":     files,
+				"count":     len(files),
 			}, nil)
 		}
 
