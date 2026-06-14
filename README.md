@@ -310,6 +310,12 @@ zenodo completion fish | source
 zenodo completion powershell | Out-String | Invoke-Expression
 ```
 
+
+## Infrastructure
+
+- **CI/CD:** [cli-workflow-template](https://github.com/thedavidweng/cli-workflow-template) — reusable GitHub Actions workflows
+- **Docs:** [site](https://github.com/thedavidweng/site) — landing page and documentation
+
 ## License
 
 [Apache License 2.0](LICENSE)
