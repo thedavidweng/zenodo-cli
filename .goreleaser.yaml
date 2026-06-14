@@ -1,8 +1,11 @@
 version: 2
 
 builds:
-  - main: ./cmd/zenodo
+  - id: zenodo
+    main: ./cmd/zenodo
     binary: zenodo
+    env:
+      - CGO_ENABLED=0
     ldflags:
       - -s -w
       - -X github.com/thedavidweng/zenodo-cli/internal/cli.Version={{.Version}}
@@ -18,7 +21,8 @@ builds:
     mod_timestamp: "{{ .CommitTimestamp }}"
 
 archives:
-  - formats: [tar.gz]
+  - id: default
+    formats: [tar.gz]
     name_template: "zenodo_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     format_overrides:
       - goos: windows
@@ -82,14 +86,22 @@ release:
     go install github.com/thedavidweng/zenodo-cli/cmd/zenodo@{{ .Tag }}
     ```
 
+    **Verify checksum:**
+    ```bash
+    cosign verify-blob \
+      --bundle checksums.txt.sig \
+      --certificate-identity-regexp='https://github.com/thedavidweng/zenodo-cli' \
+      --certificate-oidc-issuer='https://token.actions.githubusercontent.com' \
+      checksums.txt
+    ```
+
 signs:
   - artifacts: checksum
     cmd: cosign
     args:
       - sign-blob
       - "--yes"
-      - "--output-signature=${signature}"
-      - "--output-certificate=${certificate}"
+      - "--bundle=${signature}"
       - "${artifact}"
 
 sboms:
@@ -97,20 +109,25 @@ sboms:
     documents:
       - "${artifact}.sbom.json"
 
-brews:
+homebrew_casks:
   - name: zenodo
+    binaries:
+      - zenodo
+    generate_completions_from_executable:
+      executable: "zenodo"
+      args:
+        - completion
+      shell_parameter_format: cobra
+      shells:
+        - bash
+        - zsh
+        - fish
     repository:
       owner: thedavidweng
       name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
     homepage: "https://github.com/thedavidweng/zenodo-cli"
     description: "Agent-friendly CLI for Zenodo deposit management, file upload/download, and InvenioRDM API access"
-    license: "Apache-2.0"
-    install: |
-      bin.install "zenodo"
-      generate_completions_from_executable(bin/"zenodo", "completion")
-    test: |
-      system "#{bin}/zenodo", "version"
 
 snapshot:
   version_template: "{{ incpatch .Version }}-next"
