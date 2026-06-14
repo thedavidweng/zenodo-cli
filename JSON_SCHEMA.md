@@ -87,15 +87,6 @@ The current schema version is `2026-06-11`.
 | 3 | Safety gate blocked (`READ_ONLY_VIOLATION`, `CONFIRMATION_REQUIRED`) |
 | 130 | Interrupted |
 
-## Events Stream
-
-When `--events` is set, the CLI emits NDJSON progress events to stderr while the JSON result goes to stdout. Each event is a valid JSON envelope:
-
-```json
-{"ok":true,"data":{"status":"uploading","file":"data.csv","bytes":1024},"meta":{"command":"files.upload.progress"}}
-{"ok":true,"data":{"status":"complete","files_uploaded":2},"meta":{"command":"files.upload"}}
-```
-
 ## Output Modifiers
 
 - `--pretty` — indented JSON for human reading.

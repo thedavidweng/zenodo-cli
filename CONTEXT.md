@@ -36,4 +36,3 @@
 - `--full` — 完整字段（覆盖 `--compact`）
 - `--json` — 自动化/Agent 用
 
-**事件流** — `--events` 在 stderr 输出 NDJSON 进度事件，stdout 保持 JSON 结果。适合长时间操作（大文件上传）的进度监控。
