@@ -105,8 +105,8 @@ A leading `/` is added if the path does not start with one.
 ```bash
 zenodo api get /api/records
 zenodo api get /api/records?q=climate
-zenodo api post /api/records --data '{"metadata":{"title":"Test"}}'
-zenodo api put /api/records/ID/draft --data '{"metadata":{"title":"Updated"}}'
+zenodo api post /api/records --data '{"metadata":{"title":"Test"}}' --confirm
+zenodo api put /api/records/ID/draft --data '{"metadata":{"title":"Updated"}}' --confirm
 ```
 
 ## doctor
