@@ -125,10 +125,6 @@ zenodo doctor --json
 | `--read-only` | `false` | Block all remote mutations |
 | `--dry-run` | `false` | Preview without execution |
 | `--confirm` | `false` | Confirm high-risk operations |
-| `--timeout` | `30s` | API timeout |
+| `--timeout` | `5m` | API timeout |
 | `--retries` | `3` | Retry count for retryable failures |
-| `--events` | `false` | NDJSON progress events to stderr |
-| `--no-color` | `false` | Disable ANSI color |
-| `--verbose` | `false` | Diagnostics to stderr |
-| `--debug` | `false` | Debug diagnostics with secrets redacted |
 | `--quiet` | `false` | Suppress progress output |

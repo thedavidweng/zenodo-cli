@@ -67,10 +67,14 @@ The current schema version is `2026-06-11`.
 | `AUTH_FAILED` | auth | Token rejected by Zenodo |
 | `READ_ONLY_VIOLATION` | safety | Mutation attempted with `--read-only` |
 | `CONFIRMATION_REQUIRED` | safety | Destructive operation without `--confirm` |
-| `API_ERROR` | api | Zenodo API returned an error or unexpected status |
-| `NETWORK_UNREACHABLE` | network | Could not connect to Zenodo servers |
+| `ZENODO_API_ERROR` | api | Zenodo API returned an error or unexpected status |
+| `NETWORK_ERROR` | network | Could not connect to Zenodo servers |
 | `VALIDATION_FAILED` | validation | Input arguments or flag values are invalid |
-| `RESOURCE_NOT_FOUND` | api | Specified record or file ID does not exist |
+| `RESOURCE_NOT_FOUND` | not_found | Specified record or file ID does not exist |
+| `PARTIAL_SUCCESS` | api | Some operations in a bulk request failed |
+| `FILESYSTEM_ERROR` | filesystem | Local file operation failed |
+| `CONFIG_ERROR` | config | Configuration error |
+| `INTERRUPTED` | — | Process interrupted (SIGINT) |
 | `PARTIAL_FAILURE` | api | Some operations in a bulk request failed |
 
 ## Exit Codes
@@ -78,14 +82,9 @@ The current schema version is `2026-06-11`.
 | Code | Meaning |
 |------|---------|
 | 0 | Success |
-| 1 | Validation failed |
-| 2 | Auth required or auth failed |
-| 3 | Zenodo API error |
-| 4 | Network error |
-| 5 | Partial success |
-| 6 | Safety gate blocked mutation |
-| 7 | Local filesystem error |
-| 8 | Config error |
+| 1 | General error (API, network, filesystem, validation, config) |
+| 2 | Auth required or auth failed (`AUTH_REQUIRED`, `AUTH_FAILED`) |
+| 3 | Safety gate blocked (`READ_ONLY_VIOLATION`, `CONFIRMATION_REQUIRED`) |
 | 130 | Interrupted |
 
 ## Events Stream
