@@ -47,6 +47,10 @@ Manage Zenodo deposit records.
 | `records delete` | `zenodo records delete RECORD_ID --confirm` | Delete a draft record |
 | `records publish` | `zenodo records publish RECORD_ID --confirm` | Publish a draft (irreversible) |
 | `records new-version` | `zenodo records new-version RECORD_ID` | Create a new draft version |
+| `records versions` | `zenodo records versions RECORD_ID` | List all versions of a record |
+| `records reserve-doi` | `zenodo records reserve-doi RECORD_ID` | Reserve a DOI for a draft record |
+| `records submit` | `zenodo records submit RECORD_ID` | Submit a draft for community review |
+| `records requests` | `zenodo records requests [QUERY]` | List review requests |
 
 ```bash
 zenodo records list --json
@@ -67,6 +71,9 @@ Manage files attached to records.
 | `files upload` | `zenodo files upload RECORD_ID file1.csv file2.csv` | Upload files to a draft |
 | `files list` | `zenodo files list RECORD_ID` | List files in a record |
 | `files download` | `zenodo files download RECORD_ID --dest ./output` | Download files from a published record |
+| `files delete` | `zenodo files delete RECORD_ID FILE...` | Delete files from a draft record |
+| `files info` | `zenodo files info RECORD_ID FILE` | Show metadata for a single file |
+| `files import` | `zenodo files import RECORD_ID` | Import files from previous version |
 
 ```bash
 zenodo files upload RECORD_ID ./data.csv ./metadata.json
@@ -93,11 +100,11 @@ Direct access to any Zenodo InvenioRDM endpoint.
 | `api post` | `zenodo api post /api/records --data '{...}'` | POST request |
 | `api put` | `zenodo api put /api/records/ID/draft --data '{...}'` | PUT request |
 
-Path prefix `/api` is added automatically if omitted.
+A leading `/` is added if the path does not start with one.
 
 ```bash
 zenodo api get /api/records
-zenodo api get records?q=climate
+zenodo api get /api/records?q=climate
 zenodo api post /api/records --data '{"metadata":{"title":"Test"}}'
 zenodo api put /api/records/ID/draft --data '{"metadata":{"title":"Updated"}}'
 ```
