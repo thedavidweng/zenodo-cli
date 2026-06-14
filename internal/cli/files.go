@@ -194,8 +194,8 @@ Use --latest to resolve the latest published version before downloading.`,
 				"dest":      dest,
 			}, nil)
 		}
-		fmt.Fprintf(ctx.Cmd.ErrOrStderr(), "Downloaded files from %s to %s\n", id, dest)
-		return nil
+		_, err := fmt.Fprintf(ctx.Cmd.ErrOrStderr(), "Downloaded files from %s to %s\n", id, dest)
+		return err
 	}),
 }
 

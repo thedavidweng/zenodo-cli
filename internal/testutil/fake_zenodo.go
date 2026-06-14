@@ -26,7 +26,6 @@ type fakeRecord struct {
 	Status       string            // draft, published
 	CreatedAt    string
 	UpdatedAt    string
-	nextID       int
 }
 
 // FakeZenodo is an in-memory HTTP server that simulates the Zenodo InvenioRDM API.
@@ -106,14 +105,14 @@ func (fz *FakeZenodo) checkAuth(w http.ResponseWriter, r *http.Request) bool {
 	if !strings.HasPrefix(auth, "Bearer ") {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
-		fmt.Fprint(w, `{"message":"Authentication required"}`)
+		_, _ = fmt.Fprint(w, `{"message":"Authentication required"}`)
 		return false
 	}
 	token := strings.TrimPrefix(auth, "Bearer ")
 	if token != fz.ValidToken {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
-		fmt.Fprint(w, `{"message":"Invalid token"}`)
+		_, _ = fmt.Fprint(w, `{"message":"Invalid token"}`)
 		return false
 	}
 	return true
@@ -123,7 +122,7 @@ func (fz *FakeZenodo) handleListUserRecords(w http.ResponseWriter, _ *http.Reque
 	fz.mu.Lock()
 	defer fz.mu.Unlock()
 
-	var hits []map[string]any
+	hits := make([]map[string]any, 0, len(fz.records))
 	for _, rec := range fz.records {
 		hits = append(hits, fz.recordToJSON(rec))
 	}
@@ -568,7 +567,7 @@ func (fz *FakeZenodo) handleDownloadFile(w http.ResponseWriter, recordID, filena
 	w.Header().Set("Content-Type", "application/octet-stream")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%q", filename))
 	w.WriteHeader(http.StatusOK)
-	w.Write(content)
+	_, _ = w.Write(content)
 }
 
 func (fz *FakeZenodo) recordToJSON(rec *fakeRecord) map[string]any {
@@ -600,5 +599,5 @@ func (fz *FakeZenodo) recordToJSON(rec *fakeRecord) map[string]any {
 func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(v)
+	_ = json.NewEncoder(w).Encode(v)
 }
