@@ -41,7 +41,7 @@ func (r *Renderer) Success(metaInput RuntimeMetaInput, data any, warnings []stri
 // Failure writes an error envelope and returns a CommandError.
 func (r *Renderer) Failure(metaInput RuntimeMetaInput, errBody model.ErrorBody) error {
 	if !r.JSON {
-		fmt.Fprintf(r.Err, "Error [%s]: %s\n", errBody.Code, errBody.Message)
+		_, _ = fmt.Fprintf(r.Err, "Error [%s]: %s\n", errBody.Code, errBody.Message)
 		return &model.CommandError{
 			Code:    errBody.Code,
 			Message: errBody.Message,
@@ -64,7 +64,7 @@ func (r *Renderer) Human(format string, args ...any) {
 	if r.Quiet {
 		return
 	}
-	fmt.Fprintf(r.Out, format+"\n", args...)
+	_, _ = fmt.Fprintf(r.Out, format+"\n", args...)
 }
 
 func (r *Renderer) buildMeta(input RuntimeMetaInput, warnings []string) model.Meta {
@@ -100,7 +100,8 @@ type fullMeta struct {
 func (r *Renderer) writeJSON(env model.Envelope) error {
 	var raw any
 
-	if r.Full {
+	switch {
+	case r.Full:
 		warnings := env.Meta.Warnings
 		if warnings == nil {
 			warnings = []string{}
@@ -118,9 +119,9 @@ func (r *Renderer) writeJSON(env model.Envelope) error {
 				Warnings:      warnings,
 			},
 		}
-	} else if r.Compact {
+	case r.Compact:
 		raw = marshalCompact(env)
-	} else {
+	default:
 		raw = env
 	}
 

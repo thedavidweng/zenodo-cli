@@ -40,7 +40,7 @@ var apiGetCmd = &cobra.Command{
 		if ctx.App.JSON {
 			return ctx.R.Success(ctx.Meta, result, nil)
 		}
-		fmt.Fprintf(ctx.Cmd.OutOrStdout(), "%v\n", result)
+		_, _ = fmt.Fprintf(ctx.Cmd.OutOrStdout(), "%v\n", result)
 		return nil
 	}),
 }
@@ -96,7 +96,7 @@ Use --data to provide the JSON request body. Without --data, sends an empty body
 		if ctx.App.JSON {
 			return ctx.R.Success(ctx.Meta, result, nil)
 		}
-		fmt.Fprintf(ctx.Cmd.OutOrStdout(), "%v\n", result)
+		_, _ = fmt.Fprintf(ctx.Cmd.OutOrStdout(), "%v\n", result)
 		return nil
 	}),
 }
@@ -152,7 +152,7 @@ Use --data to provide the JSON request body. Without --data, sends an empty body
 		if ctx.App.JSON {
 			return ctx.R.Success(ctx.Meta, result, nil)
 		}
-		fmt.Fprintf(ctx.Cmd.OutOrStdout(), "%v\n", result)
+		_, _ = fmt.Fprintf(ctx.Cmd.OutOrStdout(), "%v\n", result)
 		return nil
 	}),
 }

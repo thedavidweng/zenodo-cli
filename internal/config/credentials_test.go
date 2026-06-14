@@ -6,6 +6,16 @@ import (
 )
 
 func TestCredentialsFromProfile(t *testing.T) {
+	origToken, origTokenSet := os.LookupEnv("ZENODO_TOKEN")
+	defer func() {
+		if origTokenSet {
+			_ = os.Setenv("ZENODO_TOKEN", origToken)
+		} else {
+			_ = os.Unsetenv("ZENODO_TOKEN")
+		}
+	}()
+	_ = os.Unsetenv("ZENODO_TOKEN")
+
 	p := &Profile{
 		Token:   "profile-token",
 		Sandbox: true,
@@ -25,18 +35,30 @@ func TestCredentialsFromProfile(t *testing.T) {
 }
 
 func TestCredentialsEnvOverridesProfile(t *testing.T) {
-	origToken := os.Getenv("ZENODO_TOKEN")
-	origSandbox := os.Getenv("ZENODO_SANDBOX")
-	origURL := os.Getenv("ZENODO_API_URL")
+	origToken, origTokenSet := os.LookupEnv("ZENODO_TOKEN")
+	origSandbox, origSandboxSet := os.LookupEnv("ZENODO_SANDBOX")
+	origURL, origURLSet := os.LookupEnv("ZENODO_API_URL")
 	defer func() {
-		os.Setenv("ZENODO_TOKEN", origToken)
-		os.Setenv("ZENODO_SANDBOX", origSandbox)
-		os.Setenv("ZENODO_API_URL", origURL)
+		if origTokenSet {
+			_ = os.Setenv("ZENODO_TOKEN", origToken)
+		} else {
+			_ = os.Unsetenv("ZENODO_TOKEN")
+		}
+		if origSandboxSet {
+			_ = os.Setenv("ZENODO_SANDBOX", origSandbox)
+		} else {
+			_ = os.Unsetenv("ZENODO_SANDBOX")
+		}
+		if origURLSet {
+			_ = os.Setenv("ZENODO_API_URL", origURL)
+		} else {
+			_ = os.Unsetenv("ZENODO_API_URL")
+		}
 	}()
 
-	os.Setenv("ZENODO_TOKEN", "env-token")
-	os.Setenv("ZENODO_SANDBOX", "true")
-	os.Setenv("ZENODO_API_URL", "https://env.example.com/api")
+	_ = os.Setenv("ZENODO_TOKEN", "env-token")
+	_ = os.Setenv("ZENODO_SANDBOX", "true")
+	_ = os.Setenv("ZENODO_API_URL", "https://env.example.com/api")
 
 	p := &Profile{
 		Token:   "profile-token",
@@ -57,18 +79,30 @@ func TestCredentialsEnvOverridesProfile(t *testing.T) {
 }
 
 func TestCredentialsEnvOnly(t *testing.T) {
-	origToken := os.Getenv("ZENODO_TOKEN")
-	origSandbox := os.Getenv("ZENODO_SANDBOX")
-	origURL := os.Getenv("ZENODO_API_URL")
+	origToken, origTokenSet := os.LookupEnv("ZENODO_TOKEN")
+	origSandbox, origSandboxSet := os.LookupEnv("ZENODO_SANDBOX")
+	origURL, origURLSet := os.LookupEnv("ZENODO_API_URL")
 	defer func() {
-		os.Setenv("ZENODO_TOKEN", origToken)
-		os.Setenv("ZENODO_SANDBOX", origSandbox)
-		os.Setenv("ZENODO_API_URL", origURL)
+		if origTokenSet {
+			_ = os.Setenv("ZENODO_TOKEN", origToken)
+		} else {
+			_ = os.Unsetenv("ZENODO_TOKEN")
+		}
+		if origSandboxSet {
+			_ = os.Setenv("ZENODO_SANDBOX", origSandbox)
+		} else {
+			_ = os.Unsetenv("ZENODO_SANDBOX")
+		}
+		if origURLSet {
+			_ = os.Setenv("ZENODO_API_URL", origURL)
+		} else {
+			_ = os.Unsetenv("ZENODO_API_URL")
+		}
 	}()
 
-	os.Setenv("ZENODO_TOKEN", "env-token")
-	os.Unsetenv("ZENODO_SANDBOX")
-	os.Unsetenv("ZENODO_API_URL")
+	_ = os.Setenv("ZENODO_TOKEN", "env-token")
+	_ = os.Unsetenv("ZENODO_SANDBOX")
+	_ = os.Unsetenv("ZENODO_API_URL")
 
 	p := &Profile{}
 
@@ -85,18 +119,30 @@ func TestCredentialsEnvOnly(t *testing.T) {
 }
 
 func TestCredentialsDefaults(t *testing.T) {
-	origToken := os.Getenv("ZENODO_TOKEN")
-	origSandbox := os.Getenv("ZENODO_SANDBOX")
-	origURL := os.Getenv("ZENODO_API_URL")
+	origToken, origTokenSet := os.LookupEnv("ZENODO_TOKEN")
+	origSandbox, origSandboxSet := os.LookupEnv("ZENODO_SANDBOX")
+	origURL, origURLSet := os.LookupEnv("ZENODO_API_URL")
 	defer func() {
-		os.Setenv("ZENODO_TOKEN", origToken)
-		os.Setenv("ZENODO_SANDBOX", origSandbox)
-		os.Setenv("ZENODO_API_URL", origURL)
+		if origTokenSet {
+			_ = os.Setenv("ZENODO_TOKEN", origToken)
+		} else {
+			_ = os.Unsetenv("ZENODO_TOKEN")
+		}
+		if origSandboxSet {
+			_ = os.Setenv("ZENODO_SANDBOX", origSandbox)
+		} else {
+			_ = os.Unsetenv("ZENODO_SANDBOX")
+		}
+		if origURLSet {
+			_ = os.Setenv("ZENODO_API_URL", origURL)
+		} else {
+			_ = os.Unsetenv("ZENODO_API_URL")
+		}
 	}()
 
-	os.Unsetenv("ZENODO_TOKEN")
-	os.Unsetenv("ZENODO_SANDBOX")
-	os.Unsetenv("ZENODO_API_URL")
+	_ = os.Unsetenv("ZENODO_TOKEN")
+	_ = os.Unsetenv("ZENODO_SANDBOX")
+	_ = os.Unsetenv("ZENODO_API_URL")
 
 	p := &Profile{}
 	c := CredentialsFromProfileAndEnv(p)
@@ -112,12 +158,12 @@ func TestCredentialsSandboxDefault(t *testing.T) {
 	origSandbox := os.Getenv("ZENODO_SANDBOX")
 	origURL := os.Getenv("ZENODO_API_URL")
 	defer func() {
-		os.Setenv("ZENODO_SANDBOX", origSandbox)
-		os.Setenv("ZENODO_API_URL", origURL)
+		_ = os.Setenv("ZENODO_SANDBOX", origSandbox)
+		_ = os.Setenv("ZENODO_API_URL", origURL)
 	}()
 
-	os.Unsetenv("ZENODO_SANDBOX")
-	os.Unsetenv("ZENODO_API_URL")
+	_ = os.Unsetenv("ZENODO_SANDBOX")
+	_ = os.Unsetenv("ZENODO_API_URL")
 
 	p := &Profile{Sandbox: true}
 	c := CredentialsFromProfileAndEnv(p)
@@ -143,7 +189,7 @@ func TestIsAuthenticated(t *testing.T) {
 
 func TestCredentialsSandboxEnvBoolParsing(t *testing.T) {
 	origSandbox := os.Getenv("ZENODO_SANDBOX")
-	defer os.Setenv("ZENODO_SANDBOX", origSandbox)
+	defer func() { _ = os.Setenv("ZENODO_SANDBOX", origSandbox) }()
 
 	tests := []struct {
 		envVal string
@@ -157,7 +203,7 @@ func TestCredentialsSandboxEnvBoolParsing(t *testing.T) {
 		{"", false},
 	}
 	for _, tt := range tests {
-		os.Setenv("ZENODO_SANDBOX", tt.envVal)
+		_ = os.Setenv("ZENODO_SANDBOX", tt.envVal)
 		c := CredentialsFromProfileAndEnv(&Profile{})
 		if c.Sandbox != tt.want {
 			t.Errorf("ZENODO_SANDBOX=%q: got sandbox=%v, want %v", tt.envVal, c.Sandbox, tt.want)

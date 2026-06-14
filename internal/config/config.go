@@ -61,14 +61,14 @@ func Save(path string, cfg *Config) error {
 		return fmt.Errorf("create temp file: %w", err)
 	}
 	tmpPath := tmp.Name()
-	defer os.Remove(tmpPath) // clean up on error
+	defer func() { _ = os.Remove(tmpPath) }() // clean up on error
 
 	if err := tmp.Chmod(0600); err != nil {
-		tmp.Close()
+		_ = tmp.Close()
 		return fmt.Errorf("chmod temp file: %w", err)
 	}
 	if _, err := tmp.Write(data); err != nil {
-		tmp.Close()
+		_ = tmp.Close()
 		return fmt.Errorf("write config: %w", err)
 	}
 	if err := tmp.Close(); err != nil {
@@ -76,7 +76,7 @@ func Save(path string, cfg *Config) error {
 	}
 	// Remove existing file before rename — required on Windows where
 	// os.Rename fails if the destination already exists.
-	os.Remove(path)
+	_ = os.Remove(path)
 	if err := os.Rename(tmpPath, path); err != nil {
 		return fmt.Errorf("rename config: %w", err)
 	}

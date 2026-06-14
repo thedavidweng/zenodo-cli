@@ -38,7 +38,7 @@ func TestDoctorRunNoConfig(t *testing.T) {
 		Profile:    "default",
 	}
 
-	checks := doctorRun(nil, app)
+	checks := doctorRun(t.Context(), app)
 	if len(checks) == 0 {
 		t.Fatal("expected at least one check")
 	}

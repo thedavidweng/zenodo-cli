@@ -229,7 +229,7 @@ func TestCompactJSONRemovesEmptyMap(t *testing.T) {
 	meta := RuntimeMetaInput{Command: "test", StartedAt: time.Now()}
 	errBody := Errorf(model.ErrConfig, "bad config")
 
-	r.Failure(meta, errBody)
+	_ = r.Failure(meta, errBody)
 
 	raw := out.String()
 	if strings.Contains(raw, `"details"`) {
@@ -248,7 +248,7 @@ func TestCompactJSONWithDetails(t *testing.T) {
 	meta := RuntimeMetaInput{Command: "test", StartedAt: time.Now()}
 	errBody := ErrorWithDetails(model.ErrValidationFailed, "bad", map[string]any{"field": "title"})
 
-	r.Failure(meta, errBody)
+	_ = r.Failure(meta, errBody)
 
 	raw := out.String()
 	if !strings.Contains(raw, `"details"`) {
