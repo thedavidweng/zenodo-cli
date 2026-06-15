@@ -825,7 +825,7 @@ func newErrorServer(t *testing.T, statusCode int, body string) *zenodo.Client {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(statusCode)
-		fmt.Fprint(w, body)
+		_, _ = fmt.Fprint(w, body)
 	}))
 	t.Cleanup(srv.Close)
 	return zenodo.NewClient(srv.URL, "tok")
@@ -950,7 +950,7 @@ func TestListRequestsError(t *testing.T) {
 func TestDoContextCancelled(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(500)
-		fmt.Fprint(w, `{"message":"retry me"}`)
+		_, _ = fmt.Fprint(w, `{"message":"retry me"}`)
 	}))
 	t.Cleanup(srv.Close)
 
@@ -971,7 +971,7 @@ func TestDoContextCancelled(t *testing.T) {
 func TestDoRetryExhaustion(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(500)
-		fmt.Fprint(w, `{"message":"always fail"}`)
+		_, _ = fmt.Fprint(w, `{"message":"always fail"}`)
 	}))
 	t.Cleanup(srv.Close)
 
@@ -990,7 +990,7 @@ func TestDoRetryExhaustion(t *testing.T) {
 func TestHandleResponseNonJSONError(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(500)
-		fmt.Fprint(w, `plain text error`)
+		_, _ = fmt.Fprint(w, `plain text error`)
 	}))
 	t.Cleanup(srv.Close)
 
@@ -1011,7 +1011,7 @@ func TestHandleResponseNonJSONError(t *testing.T) {
 func TestHandleResponseStructuredFieldError(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(400)
-		fmt.Fprint(w, `{"message":"Validation error","status":400,"errors":[{"field":"metadata.title","messages":["Missing data for required field."]}`)
+		_, _ = fmt.Fprint(w, `{"message":"Validation error","status":400,"errors":[{"field":"metadata.title","messages":["Missing data for required field."]}`)
 	}))
 	t.Cleanup(srv.Close)
 
@@ -1034,7 +1034,7 @@ func TestDoNotRetry4xx(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		attempts++
 		w.WriteHeader(403)
-		fmt.Fprint(w, `{"message":"forbidden"}`)
+		_, _ = fmt.Fprint(w, `{"message":"forbidden"}`)
 	}))
 	t.Cleanup(srv.Close)
 
@@ -1069,7 +1069,7 @@ func TestDoRawContextCancelled(t *testing.T) {
 	// UploadFile calls doRaw internally
 	tmpDir := t.TempDir()
 	tmpFile := filepath.Join(tmpDir, "cancel.txt")
-	os.WriteFile(tmpFile, []byte("x"), 0644)
+	_ = os.WriteFile(tmpFile, []byte("x"), 0644)
 
 	err := client.UploadFile(ctx, "1", tmpFile)
 	if err == nil {
@@ -1091,7 +1091,7 @@ func TestDoRawRetryExhaustion(t *testing.T) {
 	ctx := context.Background()
 	tmpDir := t.TempDir()
 	tmpFile := filepath.Join(tmpDir, "retry.txt")
-	os.WriteFile(tmpFile, []byte("x"), 0644)
+	_ = os.WriteFile(tmpFile, []byte("x"), 0644)
 
 	err := client.UploadFile(ctx, "1", tmpFile)
 	if err == nil {
@@ -1121,7 +1121,7 @@ func TestDownloadFileHTTPError(t *testing.T) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(200)
-		fmt.Fprint(w, `{"id":"1","status":"published","metadata":{"title":"t"},"files":[{"key":"missing.txt","size":0}]}`)
+		_, _ = fmt.Fprint(w, `{"id":"1","status":"published","metadata":{"title":"t"},"files":[{"key":"missing.txt","size":0}]}`)
 	}))
 	t.Cleanup(srv2.Close)
 

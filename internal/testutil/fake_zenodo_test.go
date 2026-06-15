@@ -65,8 +65,8 @@ func TestCreateAndListRecords(t *testing.T) {
 	}
 
 	var created map[string]any
-	json.NewDecoder(resp.Body).Decode(&created)
-	resp.Body.Close()
+	_ = json.NewDecoder(resp.Body).Decode(&created)
+	_ = resp.Body.Close()
 
 	id, _ := created["id"].(string)
 	if id == "" {
@@ -85,8 +85,8 @@ func TestCreateAndListRecords(t *testing.T) {
 	}
 
 	var listResp map[string]any
-	json.NewDecoder(resp.Body).Decode(&listResp)
-	resp.Body.Close()
+	_ = json.NewDecoder(resp.Body).Decode(&listResp)
+	_ = resp.Body.Close()
 }
 
 func TestSearchRecords(t *testing.T) {
@@ -99,7 +99,7 @@ func TestSearchRecords(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer tok")
 	req.Header.Set("Content-Type", "application/json")
 	resp, _ := http.DefaultClient.Do(req)
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	// Search
 	req, _ = http.NewRequest("GET", fz.URL()+"/api/records?q=quantum", nil)
@@ -154,15 +154,15 @@ func TestGetPublishedRecord(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	resp, _ := http.DefaultClient.Do(req)
 	var created map[string]any
-	json.NewDecoder(resp.Body).Decode(&created)
-	resp.Body.Close()
+	_ = json.NewDecoder(resp.Body).Decode(&created)
+	_ = resp.Body.Close()
 	id := created["id"].(string)
 
 	// Publish
 	req, _ = http.NewRequest("POST", fz.URL()+"/api/records/"+id+"/draft/actions/publish", nil)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, _ = http.DefaultClient.Do(req)
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	// Get published
 	req, _ = http.NewRequest("GET", fz.URL()+"/api/records/"+id, nil)
@@ -186,8 +186,8 @@ func TestGetDraft(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	resp, _ := http.DefaultClient.Do(req)
 	var created map[string]any
-	json.NewDecoder(resp.Body).Decode(&created)
-	resp.Body.Close()
+	_ = json.NewDecoder(resp.Body).Decode(&created)
+	_ = resp.Body.Close()
 	id := created["id"].(string)
 
 	req, _ = http.NewRequest("GET", fz.URL()+"/api/records/"+id+"/draft", nil)
@@ -211,8 +211,8 @@ func TestUpdateDraft(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	resp, _ := http.DefaultClient.Do(req)
 	var created map[string]any
-	json.NewDecoder(resp.Body).Decode(&created)
-	resp.Body.Close()
+	_ = json.NewDecoder(resp.Body).Decode(&created)
+	_ = resp.Body.Close()
 	id := created["id"].(string)
 
 	update := `{"metadata":{"title":"Updated","description":"new desc","publication_date":"2026-06-01","resource_type":{"type":"publication"}}}`
@@ -238,8 +238,8 @@ func TestDeleteDraft(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	resp, _ := http.DefaultClient.Do(req)
 	var created map[string]any
-	json.NewDecoder(resp.Body).Decode(&created)
-	resp.Body.Close()
+	_ = json.NewDecoder(resp.Body).Decode(&created)
+	_ = resp.Body.Close()
 	id := created["id"].(string)
 
 	req, _ = http.NewRequest("DELETE", fz.URL()+"/api/records/"+id+"/draft", nil)
@@ -263,8 +263,8 @@ func TestNewVersion(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	resp, _ := http.DefaultClient.Do(req)
 	var created map[string]any
-	json.NewDecoder(resp.Body).Decode(&created)
-	resp.Body.Close()
+	_ = json.NewDecoder(resp.Body).Decode(&created)
+	_ = resp.Body.Close()
 	id := created["id"].(string)
 
 	req, _ = http.NewRequest("POST", fz.URL()+"/api/records/"+id+"/versions", nil)
@@ -289,8 +289,8 @@ func TestFileUploadAndList(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	resp, _ := http.DefaultClient.Do(req)
 	var created map[string]any
-	json.NewDecoder(resp.Body).Decode(&created)
-	resp.Body.Close()
+	_ = json.NewDecoder(resp.Body).Decode(&created)
+	_ = resp.Body.Close()
 	id := created["id"].(string)
 
 	// Init upload
@@ -305,7 +305,7 @@ func TestFileUploadAndList(t *testing.T) {
 	if resp.StatusCode != http.StatusCreated {
 		t.Fatalf("init status = %d, want 201", resp.StatusCode)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	// Upload content
 	req, _ = http.NewRequest("PUT", fz.URL()+"/api/records/"+id+"/draft/files/test.txt/content", bytes.NewBufferString("hello"))
@@ -318,7 +318,7 @@ func TestFileUploadAndList(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("upload status = %d, want 200", resp.StatusCode)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	// Commit
 	req, _ = http.NewRequest("POST", fz.URL()+"/api/records/"+id+"/draft/files/test.txt/commit", nil)
@@ -330,7 +330,7 @@ func TestFileUploadAndList(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("commit status = %d, want 200", resp.StatusCode)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	// List draft files
 	req, _ = http.NewRequest("GET", fz.URL()+"/api/records/"+id+"/draft/files", nil)
@@ -342,7 +342,7 @@ func TestFileUploadAndList(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("list status = %d, want 200", resp.StatusCode)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	// Get file info
 	req, _ = http.NewRequest("GET", fz.URL()+"/api/records/"+id+"/draft/files/test.txt", nil)
@@ -354,13 +354,13 @@ func TestFileUploadAndList(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("get file status = %d, want 200", resp.StatusCode)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	// Publish
 	req, _ = http.NewRequest("POST", fz.URL()+"/api/records/"+id+"/draft/actions/publish", nil)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, _ = http.DefaultClient.Do(req)
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	// List published files
 	req, _ = http.NewRequest("GET", fz.URL()+"/api/records/"+id+"/files", nil)
@@ -372,7 +372,7 @@ func TestFileUploadAndList(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("list published status = %d, want 200", resp.StatusCode)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	// Download file
 	req, _ = http.NewRequest("GET", fz.URL()+"/api/records/"+id+"/files/test.txt/content", nil)
@@ -385,7 +385,7 @@ func TestFileUploadAndList(t *testing.T) {
 		t.Fatalf("download status = %d, want 200", resp.StatusCode)
 	}
 	content, _ := io.ReadAll(resp.Body)
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	if string(content) != "hello" {
 		t.Fatalf("content = %q, want %q", content, "hello")
 	}
@@ -401,8 +401,8 @@ func TestDeleteFile(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	resp, _ := http.DefaultClient.Do(req)
 	var created map[string]any
-	json.NewDecoder(resp.Body).Decode(&created)
-	resp.Body.Close()
+	_ = json.NewDecoder(resp.Body).Decode(&created)
+	_ = resp.Body.Close()
 	id := created["id"].(string)
 
 	// Init + upload + commit
@@ -411,18 +411,18 @@ func TestDeleteFile(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer tok")
 	req.Header.Set("Content-Type", "application/json")
 	resp, _ = http.DefaultClient.Do(req)
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	req, _ = http.NewRequest("PUT", fz.URL()+"/api/records/"+id+"/draft/files/del.txt/content", bytes.NewBufferString("x"))
 	req.Header.Set("Authorization", "Bearer tok")
 	req.Header.Set("Content-Type", "application/octet-stream")
 	resp, _ = http.DefaultClient.Do(req)
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	req, _ = http.NewRequest("POST", fz.URL()+"/api/records/"+id+"/draft/files/del.txt/commit", nil)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, _ = http.DefaultClient.Do(req)
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	// Delete file
 	req, _ = http.NewRequest("DELETE", fz.URL()+"/api/records/"+id+"/draft/files/del.txt", nil)
@@ -446,15 +446,15 @@ func TestListVersions(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	resp, _ := http.DefaultClient.Do(req)
 	var created map[string]any
-	json.NewDecoder(resp.Body).Decode(&created)
-	resp.Body.Close()
+	_ = json.NewDecoder(resp.Body).Decode(&created)
+	_ = resp.Body.Close()
 	id := created["id"].(string)
 
 	// Publish
 	req, _ = http.NewRequest("POST", fz.URL()+"/api/records/"+id+"/draft/actions/publish", nil)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, _ = http.DefaultClient.Do(req)
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	// List versions
 	req, _ = http.NewRequest("GET", fz.URL()+"/api/records/"+id+"/versions", nil)
@@ -478,8 +478,8 @@ func TestReserveDOI(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	resp, _ := http.DefaultClient.Do(req)
 	var created map[string]any
-	json.NewDecoder(resp.Body).Decode(&created)
-	resp.Body.Close()
+	_ = json.NewDecoder(resp.Body).Decode(&created)
+	_ = resp.Body.Close()
 	id := created["id"].(string)
 
 	req, _ = http.NewRequest("POST", fz.URL()+"/api/records/"+id+"/draft/pids/doi", nil)
@@ -503,8 +503,8 @@ func TestSubmitToCommunity(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	resp, _ := http.DefaultClient.Do(req)
 	var created map[string]any
-	json.NewDecoder(resp.Body).Decode(&created)
-	resp.Body.Close()
+	_ = json.NewDecoder(resp.Body).Decode(&created)
+	_ = resp.Body.Close()
 	id := created["id"].(string)
 
 	submitBody := `{"receiver":{"community":"test-community"}}`
@@ -530,8 +530,8 @@ func TestImportFiles(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	resp, _ := http.DefaultClient.Do(req)
 	var created map[string]any
-	json.NewDecoder(resp.Body).Decode(&created)
-	resp.Body.Close()
+	_ = json.NewDecoder(resp.Body).Decode(&created)
+	_ = resp.Body.Close()
 	id := created["id"].(string)
 
 	req, _ = http.NewRequest("POST", fz.URL()+"/api/records/"+id+"/draft/actions/files-import", nil)
@@ -586,14 +586,14 @@ func TestResolveLatest(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	resp, _ := http.DefaultClient.Do(req)
 	var created map[string]any
-	json.NewDecoder(resp.Body).Decode(&created)
-	resp.Body.Close()
+	_ = json.NewDecoder(resp.Body).Decode(&created)
+	_ = resp.Body.Close()
 	id := created["id"].(string)
 
 	req, _ = http.NewRequest("POST", fz.URL()+"/api/records/"+id+"/draft/actions/publish", nil)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, _ = http.DefaultClient.Do(req)
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	// Resolve latest (no newer version)
 	req, _ = http.NewRequest("GET", fz.URL()+"/api/records/"+id+"/versions/latest", nil)
@@ -707,7 +707,7 @@ func TestFileOperationsNotFound(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer tok")
 	req.Header.Set("Content-Type", "application/json")
 	resp, _ := http.DefaultClient.Do(req)
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	if resp.StatusCode != http.StatusNotFound {
 		t.Fatalf("init: status = %d, want 404", resp.StatusCode)
 	}
@@ -716,7 +716,7 @@ func TestFileOperationsNotFound(t *testing.T) {
 	req, _ = http.NewRequest("PUT", fz.URL()+"/api/records/999999/draft/files/x/content", bytes.NewBufferString("x"))
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, _ = http.DefaultClient.Do(req)
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	if resp.StatusCode != http.StatusNotFound {
 		t.Fatalf("upload: status = %d, want 404", resp.StatusCode)
 	}
@@ -725,7 +725,7 @@ func TestFileOperationsNotFound(t *testing.T) {
 	req, _ = http.NewRequest("POST", fz.URL()+"/api/records/999999/draft/files/x/commit", nil)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, _ = http.DefaultClient.Do(req)
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	if resp.StatusCode != http.StatusNotFound {
 		t.Fatalf("commit: status = %d, want 404", resp.StatusCode)
 	}
@@ -734,7 +734,7 @@ func TestFileOperationsNotFound(t *testing.T) {
 	req, _ = http.NewRequest("GET", fz.URL()+"/api/records/999999/files/x/content", nil)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, _ = http.DefaultClient.Do(req)
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	if resp.StatusCode != http.StatusNotFound {
 		t.Fatalf("download: status = %d, want 404", resp.StatusCode)
 	}
@@ -743,7 +743,7 @@ func TestFileOperationsNotFound(t *testing.T) {
 	req, _ = http.NewRequest("GET", fz.URL()+"/api/records/999999/draft/files", nil)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, _ = http.DefaultClient.Do(req)
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	if resp.StatusCode != http.StatusNotFound {
 		t.Fatalf("list: status = %d, want 404", resp.StatusCode)
 	}
@@ -752,7 +752,7 @@ func TestFileOperationsNotFound(t *testing.T) {
 	req, _ = http.NewRequest("GET", fz.URL()+"/api/records/999999/draft/files/x", nil)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, _ = http.DefaultClient.Do(req)
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	if resp.StatusCode != http.StatusNotFound {
 		t.Fatalf("get file: status = %d, want 404", resp.StatusCode)
 	}
@@ -761,7 +761,7 @@ func TestFileOperationsNotFound(t *testing.T) {
 	req, _ = http.NewRequest("DELETE", fz.URL()+"/api/records/999999/draft/files/x", nil)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, _ = http.DefaultClient.Do(req)
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	if resp.StatusCode != http.StatusNotFound {
 		t.Fatalf("delete file: status = %d, want 404", resp.StatusCode)
 	}
@@ -838,21 +838,21 @@ func TestPublishDraftThenGetPublished(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	resp, _ := http.DefaultClient.Do(req)
 	var created map[string]any
-	json.NewDecoder(resp.Body).Decode(&created)
-	resp.Body.Close()
+	_ = json.NewDecoder(resp.Body).Decode(&created)
+	_ = resp.Body.Close()
 	id := created["id"].(string)
 
 	// Get draft before publish (should work)
 	req, _ = http.NewRequest("GET", fz.URL()+"/api/records/"+id+"/draft", nil)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, _ = http.DefaultClient.Do(req)
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	// Publish
 	req, _ = http.NewRequest("POST", fz.URL()+"/api/records/"+id+"/draft/actions/publish", nil)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, _ = http.DefaultClient.Do(req)
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	// Get published record
 	req, _ = http.NewRequest("GET", fz.URL()+"/api/records/"+id, nil)
@@ -876,8 +876,8 @@ func TestPublishedFilesListForDraft(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	resp, _ := http.DefaultClient.Do(req)
 	var created map[string]any
-	json.NewDecoder(resp.Body).Decode(&created)
-	resp.Body.Close()
+	_ = json.NewDecoder(resp.Body).Decode(&created)
+	_ = resp.Body.Close()
 	id := created["id"].(string)
 
 	// List published files for a draft (should fail)
@@ -902,8 +902,8 @@ func TestCommitFileNotFound(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	resp, _ := http.DefaultClient.Do(req)
 	var created map[string]any
-	json.NewDecoder(resp.Body).Decode(&created)
-	resp.Body.Close()
+	_ = json.NewDecoder(resp.Body).Decode(&created)
+	_ = resp.Body.Close()
 	id := created["id"].(string)
 
 	// Try to commit a file that was never uploaded
@@ -928,8 +928,8 @@ func TestDownloadFileNotFound(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	resp, _ := http.DefaultClient.Do(req)
 	var created map[string]any
-	json.NewDecoder(resp.Body).Decode(&created)
-	resp.Body.Close()
+	_ = json.NewDecoder(resp.Body).Decode(&created)
+	_ = resp.Body.Close()
 	id := created["id"].(string)
 
 	// Init + upload + publish
@@ -938,22 +938,22 @@ func TestDownloadFileNotFound(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer tok")
 	req.Header.Set("Content-Type", "application/json")
 	resp, _ = http.DefaultClient.Do(req)
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	req, _ = http.NewRequest("PUT", fz.URL()+"/api/records/"+id+"/draft/files/exists.txt/content", bytes.NewBufferString("x"))
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, _ = http.DefaultClient.Do(req)
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	req, _ = http.NewRequest("POST", fz.URL()+"/api/records/"+id+"/draft/files/exists.txt/commit", nil)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, _ = http.DefaultClient.Do(req)
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	req, _ = http.NewRequest("POST", fz.URL()+"/api/records/"+id+"/draft/actions/publish", nil)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, _ = http.DefaultClient.Do(req)
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	// Try to download a non-existent file
 	req, _ = http.NewRequest("GET", fz.URL()+"/api/records/"+id+"/files/nonexistent.txt/content", nil)
