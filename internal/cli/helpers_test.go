@@ -104,3 +104,121 @@ func TestRequireConfirmWithoutFlag(t *testing.T) {
 		t.Error("expected error without confirm")
 	}
 }
+
+func TestRequireReadOnlyWithFlag(t *testing.T) {
+	var out, errBuf bytes.Buffer
+	r := output.Renderer{Out: &out, Err: &errBuf, JSON: true}
+	meta := output.RuntimeMetaInput{Command: "test"}
+	app := &AppContext{ReadOnly: true}
+
+	err := requireReadOnly(&r, meta, app)
+	if err == nil {
+		t.Error("expected error when read-only is set")
+	}
+}
+
+func TestRequireReadOnlyWithoutFlag(t *testing.T) {
+	var out bytes.Buffer
+	r := output.Renderer{Out: &out, Err: &out}
+	meta := output.RuntimeMetaInput{Command: "test"}
+	app := &AppContext{ReadOnly: false}
+
+	err := requireReadOnly(&r, meta, app)
+	if err != nil {
+		t.Errorf("expected no error when read-only is not set, got: %v", err)
+	}
+}
+
+func TestParseJSONValid(t *testing.T) {
+	var result map[string]any
+	err := parseJSON(`{"key":"value","num":42}`, &result)
+	if err != nil {
+		t.Fatalf("parseJSON: %v", err)
+	}
+	if result["key"] != "value" {
+		t.Errorf("key = %v, want value", result["key"])
+	}
+	if result["num"] != float64(42) {
+		t.Errorf("num = %v, want 42", result["num"])
+	}
+}
+
+func TestParseJSONInvalid(t *testing.T) {
+	var result map[string]any
+	err := parseJSON("not-json{{{", &result)
+	if err == nil {
+		t.Error("expected error for invalid JSON")
+	}
+}
+
+func TestGetClientWithValidConfig(t *testing.T) {
+	_, cfgPath := setupFakeZenodoTest(t)
+
+	app := &AppContext{
+		ConfigFile: cfgPath,
+		Profile:    "test",
+		Timeout:    30 * time.Second,
+		Retries:    0,
+	}
+
+	client, err := getClient(app)
+	if err != nil {
+		t.Fatalf("getClient: %v", err)
+	}
+	if client.Token != testToken {
+		t.Errorf("Token = %q, want %q", client.Token, testToken)
+	}
+}
+
+func TestGetClientMissingConfig(t *testing.T) {
+	app := &AppContext{
+		ConfigFile: "/nonexistent/config.yaml",
+		Profile:    "test",
+		Timeout:    30 * time.Second,
+		Retries:    0,
+	}
+
+	_, err := getClient(app)
+	if err == nil {
+		t.Error("expected error for missing config")
+	}
+}
+
+func TestGetClientMissingProfile(t *testing.T) {
+	_, cfgPath := setupFakeZenodoTest(t)
+
+	app := &AppContext{
+		ConfigFile: cfgPath,
+		Profile:    "nonexistent",
+		Timeout:    30 * time.Second,
+		Retries:    0,
+	}
+
+	_, err := getClient(app)
+	if err == nil {
+		t.Error("expected error for missing profile")
+	}
+}
+
+func TestGetClientWithSandboxOverride(t *testing.T) {
+	fz, cfgPath := setupFakeZenodoTest(t)
+	_ = fz
+
+	app := &AppContext{
+		ConfigFile: cfgPath,
+		Profile:    "test",
+		Sandbox:    true,
+		Timeout:    30 * time.Second,
+		Retries:    0,
+	}
+
+	client, err := getClient(app)
+	if err != nil {
+		t.Fatalf("getClient: %v", err)
+	}
+	// Sandbox override should set BaseURL to sandbox, but Endpoints.API overrides it
+	// so the client should still use the fake server URL
+	if client.BaseURL != fz.URL() {
+		t.Errorf("BaseURL = %q, want %q (endpoint override)", client.BaseURL, fz.URL())
+	}
+}
