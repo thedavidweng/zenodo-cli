@@ -131,7 +131,6 @@ Remove config if desired: `rm -rf ~/.config/zenodo-cli`
 - [Safety Model](docs/safety.md) — `--read-only`, `--dry-run`, `--confirm` gates
 - [JSON Contract](docs/json-contract.md) — envelope schema, output modifiers
 - [Global Flags & Environment Variables](docs/flags.md) — all CLI flags and env vars
-- [Capabilities](docs/capabilities.md) — high-level feature overview
 - [Architecture](docs/ARCHITECTURE.md) — codebase structure and design decisions
 - [Agent Guide](docs/agent-guide.md) — scripting, JSON mode, exit codes
 
