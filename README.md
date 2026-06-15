@@ -9,11 +9,10 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/thedavidweng/zenodo-cli/actions/workflows/ci.yml"><img src="https://github.com/thedavidweng/zenodo-cli/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://github.com/thedavidweng/zenodo-cli/releases"><img src="https://img.shields.io/github/v/release/thedavidweng/zenodo-cli" alt="Release"></a>
-  <a href="https://pkg.go.dev/github.com/thedavidweng/zenodo-cli"><img src="https://pkg.go.dev/badge/github.com/thedavidweng/zenodo-cli.svg" alt="Go Reference"></a>
-  <a href="https://github.com/thedavidweng/zenodo-cli/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue" alt="License"></a>
-  <img src="https://img.shields.io/badge/go-1.26.3-00ADD8?logo=go" alt="Go">
+  <a href="https://github.com/thedavidweng/zenodo-cli/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/thedavidweng/zenodo-cli/ci.yml?branch=main&style=flat-square&label=ci" alt="CI"></a>
+  <a href="https://github.com/thedavidweng/zenodo-cli/releases"><img src="https://img.shields.io/github/v/release/thedavidweng/zenodo-cli?style=flat-square" alt="Release"></a>
+  <a href="https://github.com/thedavidweng/zenodo-cli/blob/main/LICENSE"><img src="https://img.shields.io/github/license/thedavidweng/zenodo-cli?style=flat-square" alt="License"></a>
+  <img src="https://img.shields.io/badge/go-%3E%3D1.26-blue?style=flat-square" alt="Go">
 </p>
 
 `zenodo-cli` is a single-binary CLI for creating Zenodo records, uploading files, publishing drafts, searching public records, and calling the current InvenioRDM API directly.
