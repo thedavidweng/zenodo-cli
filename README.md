@@ -13,6 +13,7 @@
   <a href="https://github.com/thedavidweng/zenodo-cli/releases"><img src="https://img.shields.io/github/v/release/thedavidweng/zenodo-cli?style=flat-square" alt="Release"></a>
   <a href="https://github.com/thedavidweng/zenodo-cli/blob/main/LICENSE"><img src="https://img.shields.io/github/license/thedavidweng/zenodo-cli?style=flat-square" alt="License"></a>
   <img src="https://img.shields.io/badge/go-%3E%3D1.26-blue?style=flat-square" alt="Go">
+  <a href="https://goreportcard.com/report/github.com/thedavidweng/zenodo-cli"><img src="https://goreportcard.com/badge/github.com/thedavidweng/zenodo-cli?style=flat-square" alt="Go Report"></a>
 </p>
 
 `zenodo-cli` is a single-binary CLI for creating Zenodo records, uploading files, publishing drafts, searching public records, and calling the current InvenioRDM API directly.
