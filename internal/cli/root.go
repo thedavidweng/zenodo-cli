@@ -28,108 +28,68 @@ func newRootCmd() *cobra.Command {
 				RequestID: uuid.New().String(),
 			}
 
-			// Read flags into AppContext
-			app.ConfigFile, _ = cmd.Flags().GetString("config")
-			app.Profile, _ = cmd.Flags().GetString("profile")
-			app.Sandbox, _ = cmd.Flags().GetBool("sandbox")
-			app.JSON, _ = cmd.Flags().GetBool("json")
-			app.Pretty, _ = cmd.Flags().GetBool("pretty")
-			app.Compact, _ = cmd.Flags().GetBool("compact")
-			app.Full, _ = cmd.Flags().GetBool("full")
-			app.Quiet, _ = cmd.Flags().GetBool("quiet")
-			app.ReadOnly, _ = cmd.Flags().GetBool("read-only")
-			app.DryRun, _ = cmd.Flags().GetBool("dry-run")
-			app.Confirm, _ = cmd.Flags().GetBool("confirm")
-			app.Timeout, _ = cmd.Flags().GetDuration("timeout")
-			app.Retries, _ = cmd.Flags().GetInt("retries")
-			// Environment variable overrides (checked after flags)
-			if app.ConfigFile == "" {
-				if env := os.Getenv("ZENODO_CONFIG"); env != "" {
-					app.ConfigFile = env
-				}
-			}
-			if app.Profile == "default" {
-				if env := os.Getenv("ZENODO_PROFILE"); env != "" {
-					app.Profile = env
-				}
-			}
-			if !app.Sandbox {
-				if env := os.Getenv("ZENODO_SANDBOX"); env != "" {
-					if env == "true" || env == "1" || env == "yes" {
-						app.Sandbox = true
-					}
-				}
-			}
-			if app.Timeout == 5*time.Minute {
-				if env := os.Getenv("ZENODO_TIMEOUT"); env != "" {
-					if d, err := time.ParseDuration(env); err == nil {
-						app.Timeout = d
-					}
-				}
-			}
-			if app.Retries == 3 {
-				if env := os.Getenv("ZENODO_RETRIES"); env != "" {
-					if n, err := strconv.Atoi(env); err == nil {
-						app.Retries = n
-					}
-				}
-			}
-			if !app.JSON {
-				if env := os.Getenv("ZENODO_JSON"); env != "" {
-					if env == "true" || env == "1" || env == "yes" {
-						app.JSON = true
-					}
-				}
-			}
-			if !app.ReadOnly {
-				if env := os.Getenv("ZENODO_READ_ONLY"); env != "" {
-					if env == "true" || env == "1" || env == "yes" {
-						app.ReadOnly = true
-					}
-				}
-			}
-			if !app.DryRun {
-				if env := os.Getenv("ZENODO_DRY_RUN"); env != "" {
-					if env == "true" || env == "1" || env == "yes" {
-						app.DryRun = true
-					}
-				}
-			}
-			if !app.Confirm {
-				if env := os.Getenv("ZENODO_CONFIRM"); env != "" {
-					if env == "true" || env == "1" || env == "yes" {
-						app.Confirm = true
-					}
-				}
-			}
-			if !app.Quiet {
-				if env := os.Getenv("ZENODO_QUIET"); env != "" {
-					if env == "true" || env == "1" || env == "yes" {
-						app.Quiet = true
-					}
-				}
+			readFlags(cmd, app)
+			applyEnvOverrides(app)
+
+			if err := validateAppContext(app); err != nil {
+				return err
 			}
 
-			// Validation
-			if app.Retries < 0 {
-				return fmt.Errorf("--retries must be >= 0")
-			}
-			if app.Timeout <= 0 {
-				return fmt.Errorf("--timeout must be positive")
-			}
-
-			// Full wins over compact
-			if app.Full {
-				app.Compact = false
-			}
-
-			// Store in command context
 			ctx := WithAppContext(cmd.Context(), app)
 			cmd.SetContext(ctx)
 			return nil
 		},
 	}
 
+	registerFlags(root)
+	return root
+}
+
+func readFlags(cmd *cobra.Command, app *AppContext) {
+	app.ConfigFile, _ = cmd.Flags().GetString("config")
+	app.Profile, _ = cmd.Flags().GetString("profile")
+	app.Sandbox, _ = cmd.Flags().GetBool("sandbox")
+	app.JSON, _ = cmd.Flags().GetBool("json")
+	app.Pretty, _ = cmd.Flags().GetBool("pretty")
+	app.Compact, _ = cmd.Flags().GetBool("compact")
+	app.Full, _ = cmd.Flags().GetBool("full")
+	app.Quiet, _ = cmd.Flags().GetBool("quiet")
+	app.ReadOnly, _ = cmd.Flags().GetBool("read-only")
+	app.DryRun, _ = cmd.Flags().GetBool("dry-run")
+	app.Confirm, _ = cmd.Flags().GetBool("confirm")
+	app.Timeout, _ = cmd.Flags().GetDuration("timeout")
+	app.Retries, _ = cmd.Flags().GetInt("retries")
+}
+
+func applyEnvOverrides(app *AppContext) {
+	if app.ConfigFile == "" {
+		app.ConfigFile = envOr("ZENODO_CONFIG", "")
+	}
+	app.Profile = envOrDefault(app.Profile, "default", "ZENODO_PROFILE")
+	app.Sandbox = app.Sandbox || envBool("ZENODO_SANDBOX")
+	app.Timeout = envDuration("ZENODO_TIMEOUT", app.Timeout, 5*time.Minute)
+	app.Retries = envInt("ZENODO_RETRIES", app.Retries, 3)
+	app.JSON = app.JSON || envBool("ZENODO_JSON")
+	app.ReadOnly = app.ReadOnly || envBool("ZENODO_READ_ONLY")
+	app.DryRun = app.DryRun || envBool("ZENODO_DRY_RUN")
+	app.Confirm = app.Confirm || envBool("ZENODO_CONFIRM")
+	app.Quiet = app.Quiet || envBool("ZENODO_QUIET")
+}
+
+func validateAppContext(app *AppContext) error {
+	if app.Retries < 0 {
+		return fmt.Errorf("--retries must be >= 0")
+	}
+	if app.Timeout <= 0 {
+		return fmt.Errorf("--timeout must be positive")
+	}
+	if app.Full {
+		app.Compact = false
+	}
+	return nil
+}
+
+func registerFlags(root *cobra.Command) {
 	root.PersistentFlags().String("config", "", "config file path (YAML, default: ~/.config/zenodo-cli/config.yaml)")
 	root.PersistentFlags().String("profile", "default", "credential profile name")
 	root.PersistentFlags().Bool("sandbox", false, "use Zenodo sandbox (sandbox.zenodo.org)")
@@ -143,7 +103,6 @@ func newRootCmd() *cobra.Command {
 	root.PersistentFlags().Bool("confirm", false, "confirm irreversible operations")
 	root.PersistentFlags().Duration("timeout", 5*time.Minute, "command/API timeout")
 	root.PersistentFlags().Int("retries", 3, "retry count for retryable failures")
-	return root
 }
 
 // Execute runs the root command with signal handling.
@@ -194,4 +153,49 @@ func registerSubcommands(root *cobra.Command) {
 	root.AddCommand(doctorCmd)
 	root.AddCommand(completionCmd)
 	root.AddCommand(apiCmd)
+}
+
+// --- env helpers ---
+
+func envOr(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
+}
+
+func envBool(key string) bool {
+	v := os.Getenv(key)
+	return v == "true" || v == "1" || v == "yes"
+}
+
+func envOrDefault(current, defaultVal, key string) string {
+	if current != defaultVal {
+		return current
+	}
+	return envOr(key, current)
+}
+
+func envDuration(key string, current, defaultVal time.Duration) time.Duration {
+	if current != defaultVal {
+		return current
+	}
+	if v := os.Getenv(key); v != "" {
+		if d, err := time.ParseDuration(v); err == nil {
+			return d
+		}
+	}
+	return current
+}
+
+func envInt(key string, current, defaultVal int) int {
+	if current != defaultVal {
+		return current
+	}
+	if v := os.Getenv(key); v != "" {
+		if n, err := strconv.Atoi(v); err == nil {
+			return n
+		}
+	}
+	return current
 }

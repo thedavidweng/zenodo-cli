@@ -228,72 +228,78 @@ func (fz *FakeZenodo) handleRecordSubpath(w http.ResponseWriter, r *http.Request
 	recordID := parts[0]
 
 	if len(parts) == 1 {
-		// GET /api/records/{id}
-		if r.Method != http.MethodGet {
-			http.Error(w, `{"message":"Method not allowed"}`, http.StatusMethodNotAllowed)
-			return
-		}
-		fz.handleGetRecord(w, recordID)
+		fz.requireMethod(w, r, http.MethodGet, func() { fz.handleGetRecord(w, recordID) })
 		return
 	}
 
 	rest := parts[1]
-
-	// /api/records/{id}/draft
-	if rest == "draft" {
-		switch r.Method {
-		case http.MethodGet:
-			fz.handleGetDraft(w, recordID)
-		case http.MethodPut:
-			fz.handleUpdateDraft(w, r, recordID)
-		case http.MethodDelete:
-			fz.handleDeleteDraft(w, recordID)
-		default:
-			http.Error(w, `{"message":"Method not allowed"}`, http.StatusMethodNotAllowed)
-		}
-		return
-	}
-
-	// /api/records/{id}/draft/actions/publish
-	if rest == "draft/actions/publish" && r.Method == http.MethodPost {
-		fz.handlePublishDraft(w, recordID)
-		return
-	}
-
-	// /api/records/{id}/versions
-	if rest == "versions" && r.Method == http.MethodPost {
-		fz.handleNewVersion(w, recordID)
-		return
-	}
-
-	// /api/records/{id}/draft/files (POST - init upload)
-	if rest == "draft/files" && r.Method == http.MethodPost {
-		fz.handleInitFileUpload(w, r, recordID)
-		return
-	}
-
-	// /api/records/{id}/draft/files/{filename}/content (PUT - upload content)
-	if strings.HasPrefix(rest, "draft/files/") && strings.HasSuffix(rest, "/content") && r.Method == http.MethodPut {
-		filename := strings.TrimSuffix(strings.TrimPrefix(rest, "draft/files/"), "/content")
-		fz.handleUploadFileContent(w, r, recordID, filename)
-		return
-	}
-
-	// /api/records/{id}/draft/files/{filename}/commit (POST - commit)
-	if strings.HasPrefix(rest, "draft/files/") && strings.HasSuffix(rest, "/commit") && r.Method == http.MethodPost {
-		filename := strings.TrimSuffix(strings.TrimPrefix(rest, "draft/files/"), "/commit")
-		fz.handleCommitFile(w, recordID, filename)
-		return
-	}
-
-	// /api/records/{id}/files/{filename}/content (GET - download file)
-	if strings.HasPrefix(rest, "files/") && strings.HasSuffix(rest, "/content") && r.Method == http.MethodGet {
-		filename := strings.TrimSuffix(strings.TrimPrefix(rest, "files/"), "/content")
-		fz.handleDownloadFile(w, recordID, filename)
+	if h, ok := fz.matchRecordRoute(w, r, recordID, rest); ok {
+		h()
 		return
 	}
 
 	http.Error(w, `{"message":"not found"}`, http.StatusNotFound)
+}
+
+func (fz *FakeZenodo) requireMethod(w http.ResponseWriter, r *http.Request, method string, handler func()) {
+	if r.Method != method {
+		http.Error(w, `{"message":"Method not allowed"}`, http.StatusMethodNotAllowed)
+		return
+	}
+	handler()
+}
+
+func (fz *FakeZenodo) matchRecordRoute(w http.ResponseWriter, r *http.Request, recordID, rest string) (func(), bool) {
+	// /api/records/{id}/draft
+	if rest == "draft" {
+		switch r.Method {
+		case http.MethodGet:
+			return func() { fz.handleGetDraft(w, recordID) }, true
+		case http.MethodPut:
+			return func() { fz.handleUpdateDraft(w, r, recordID) }, true
+		case http.MethodDelete:
+			return func() { fz.handleDeleteDraft(w, recordID) }, true
+		default:
+			http.Error(w, `{"message":"Method not allowed"}`, http.StatusMethodNotAllowed)
+			return nil, true
+		}
+	}
+
+	// Exact match routes with method constraint
+	type exactRoute struct {
+		method  string
+		path    string
+		handler func()
+	}
+	for _, route := range []exactRoute{
+		{http.MethodPost, "draft/actions/publish", func() { fz.handlePublishDraft(w, recordID) }},
+		{http.MethodPost, "versions", func() { fz.handleNewVersion(w, recordID) }},
+		{http.MethodPost, "draft/files", func() { fz.handleInitFileUpload(w, r, recordID) }},
+	} {
+		if rest == route.path && r.Method == route.method {
+			return route.handler, true
+		}
+	}
+
+	// Pattern match routes
+	type patternRoute struct {
+		method  string
+		prefix  string
+		suffix  string
+		handler func(filename string)
+	}
+	for _, route := range []patternRoute{
+		{http.MethodPut, "draft/files/", "/content", func(fn string) { fz.handleUploadFileContent(w, r, recordID, fn) }},
+		{http.MethodPost, "draft/files/", "/commit", func(fn string) { fz.handleCommitFile(w, recordID, fn) }},
+		{http.MethodGet, "files/", "/content", func(fn string) { fz.handleDownloadFile(w, recordID, fn) }},
+	} {
+		if strings.HasPrefix(rest, route.prefix) && strings.HasSuffix(rest, route.suffix) && r.Method == route.method {
+			filename := strings.TrimSuffix(strings.TrimPrefix(rest, route.prefix), route.suffix)
+			return func() { route.handler(filename) }, true
+		}
+	}
+
+	return nil, false
 }
 
 func (fz *FakeZenodo) handleGetRecord(w http.ResponseWriter, id string) {
