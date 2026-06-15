@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="public/icon.png" alt="zenodo-cli" width="160" />
+</p>
+
 <h1 align="center">zenodo-cli</h1>
 
 <p align="center">
