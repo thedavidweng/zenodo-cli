@@ -55,4 +55,8 @@ profiles:
 	p, _ := cfg.GetProfile("default")
 	fmt.Println("Token:", p.Token)
 	fmt.Println("Sandbox:", p.Sandbox)
+	// Output:
+	// Profile: default
+	// Token: test-token
+	// Sandbox: true
 }
