@@ -11,4 +11,3 @@ jobs:
     uses: thedavidweng/cli-workflow-template/.github/workflows/go-ci.yml@main
     with:
       enable-coverage: true
-      codecov-token: ${{ secrets.CODECOV_TOKEN }}
