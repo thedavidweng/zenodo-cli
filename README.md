@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="public/icon.webp" alt="zenodo-cli" width="160" />
+  <img src="https://about.zenodo.org/static/img/icons/zenodo-icon-black.svg" alt="zenodo-cli" width="160" />
 </p>
 
 <h1 align="center">zenodo-cli</h1>

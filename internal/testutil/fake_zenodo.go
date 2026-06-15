@@ -275,13 +275,15 @@ func (fz *FakeZenodo) matchRecordRoute(w http.ResponseWriter, r *http.Request, r
 		{http.MethodPost, "draft/actions/publish", func() { fz.handlePublishDraft(w, recordID) }},
 		{http.MethodPost, "versions", func() { fz.handleNewVersion(w, recordID) }},
 		{http.MethodPost, "draft/files", func() { fz.handleInitFileUpload(w, r, recordID) }},
+		{http.MethodGet, "draft/files", func() { fz.handleListFiles(w, recordID, false) }},
+		{http.MethodGet, "files", func() { fz.handleListFiles(w, recordID, true) }},
 	} {
 		if rest == route.path && r.Method == route.method {
 			return route.handler, true
 		}
 	}
 
-	// Pattern match routes
+	// Pattern match routes with suffix
 	type patternRoute struct {
 		method  string
 		prefix  string
@@ -296,6 +298,24 @@ func (fz *FakeZenodo) matchRecordRoute(w http.ResponseWriter, r *http.Request, r
 		if strings.HasPrefix(rest, route.prefix) && strings.HasSuffix(rest, route.suffix) && r.Method == route.method {
 			filename := strings.TrimSuffix(strings.TrimPrefix(rest, route.prefix), route.suffix)
 			return func() { route.handler(filename) }, true
+		}
+	}
+
+	// Pattern match routes without suffix (e.g. draft/files/{filename})
+	type barePatternRoute struct {
+		method  string
+		prefix  string
+		handler func(filename string)
+	}
+	for _, route := range []barePatternRoute{
+		{http.MethodGet, "draft/files/", func(fn string) { fz.handleGetFile(w, recordID, fn) }},
+		{http.MethodDelete, "draft/files/", func(fn string) { fz.handleDeleteFile(w, recordID, fn) }},
+	} {
+		if strings.HasPrefix(rest, route.prefix) && r.Method == route.method {
+			filename := strings.TrimPrefix(rest, route.prefix)
+			if filename != "" && !strings.Contains(filename, "/") {
+				return func() { route.handler(filename) }, true
+			}
 		}
 	}
 
@@ -574,6 +594,75 @@ func (fz *FakeZenodo) handleDownloadFile(w http.ResponseWriter, recordID, filena
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%q", filename))
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(content)
+}
+
+func (fz *FakeZenodo) handleListFiles(w http.ResponseWriter, id string, published bool) {
+	fz.mu.Lock()
+	defer fz.mu.Unlock()
+
+	rec, ok := fz.records[id]
+	if !ok {
+		http.Error(w, `{"message":"Record not found"}`, http.StatusNotFound)
+		return
+	}
+	if published && rec.Status != "published" {
+		http.Error(w, `{"message":"Record not found"}`, http.StatusNotFound)
+		return
+	}
+
+	entries := make([]map[string]any, 0, len(rec.Files))
+	for _, f := range rec.Files {
+		entries = append(entries, map[string]any{
+			"key":      f["key"],
+			"size":     f["size"],
+			"checksum": f["checksum"],
+		})
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"entries": entries})
+}
+
+func (fz *FakeZenodo) handleGetFile(w http.ResponseWriter, id, filename string) {
+	fz.mu.Lock()
+	defer fz.mu.Unlock()
+
+	rec, ok := fz.records[id]
+	if !ok {
+		http.Error(w, `{"message":"Record not found"}`, http.StatusNotFound)
+		return
+	}
+
+	for _, f := range rec.Files {
+		if f["key"] == filename {
+			writeJSON(w, http.StatusOK, map[string]any{
+				"key":      f["key"],
+				"size":     f["size"],
+				"checksum": f["checksum"],
+			})
+			return
+		}
+	}
+	http.Error(w, `{"message":"File not found"}`, http.StatusNotFound)
+}
+
+func (fz *FakeZenodo) handleDeleteFile(w http.ResponseWriter, id, filename string) {
+	fz.mu.Lock()
+	defer fz.mu.Unlock()
+
+	rec, ok := fz.records[id]
+	if !ok {
+		http.Error(w, `{"message":"Record not found"}`, http.StatusNotFound)
+		return
+	}
+
+	for i, f := range rec.Files {
+		if f["key"] == filename {
+			rec.Files = append(rec.Files[:i], rec.Files[i+1:]...)
+			delete(rec.FileContents, filename)
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+	}
+	http.Error(w, `{"message":"File not found"}`, http.StatusNotFound)
 }
 
 func (fz *FakeZenodo) recordToJSON(rec *fakeRecord) map[string]any {

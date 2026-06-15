@@ -158,6 +158,33 @@ func TestRegisterSubcommands(t *testing.T) {
 	}
 }
 
+func TestValidateAppContextNegativeRetries(t *testing.T) {
+	app := &AppContext{Retries: -1, Timeout: 5 * time.Second}
+	err := validateAppContext(app)
+	if err == nil {
+		t.Error("expected error for negative retries")
+	}
+}
+
+func TestValidateAppContextZeroTimeout(t *testing.T) {
+	app := &AppContext{Retries: 0, Timeout: 0}
+	err := validateAppContext(app)
+	if err == nil {
+		t.Error("expected error for zero timeout")
+	}
+}
+
+func TestValidateAppContextFullOverridesCompact(t *testing.T) {
+	app := &AppContext{Retries: 0, Timeout: 5 * time.Second, Full: true, Compact: true}
+	err := validateAppContext(app)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if app.Compact {
+		t.Error("expected Compact=false when Full=true")
+	}
+}
+
 func TestSilenceAllCommands(t *testing.T) {
 	parent := &cobra.Command{Use: "parent"}
 	child := &cobra.Command{Use: "child"}

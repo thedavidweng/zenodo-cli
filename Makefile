@@ -13,6 +13,7 @@ build:
 	go build -o bin/zenodo ./cmd/zenodo
 
 lint: fmt vet test
+	golangci-lint run
 
 
 changelog:
