@@ -3,10 +3,15 @@ package cli
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/spf13/cobra"
+
+	"github.com/thedavidweng/zenodo-cli/internal/testutil"
 )
 
 func TestDoctorCommandExists(t *testing.T) {
@@ -97,5 +102,105 @@ func TestDoctorJSONOutput(t *testing.T) {
 	}
 	if _, ok := result["ok"]; !ok {
 		t.Error("JSON should have 'ok' field")
+	}
+}
+
+func TestDoctorRunValidConfigNoToken(t *testing.T) {
+	cfgDir := t.TempDir()
+	cfgPath := filepath.Join(cfgDir, "config.yaml")
+	cfgContent := `current_profile: test
+profiles:
+  test:
+    token: ""
+    base_url: https://zenodo.org
+`
+	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0600); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	app := &AppContext{
+		ConfigFile: cfgPath,
+		Profile:    "test",
+	}
+
+	checks := doctorRun(t.Context(), app)
+	// Should have config=ok, profile=ok, token=fail
+	if len(checks) < 3 {
+		t.Fatalf("expected at least 3 checks, got %d", len(checks))
+	}
+	if !checks[0].OK {
+		t.Errorf("config check should pass, got: %s", checks[0].Message)
+	}
+	if !checks[1].OK {
+		t.Errorf("profile check should pass, got: %s", checks[1].Message)
+	}
+	if checks[2].OK {
+		t.Error("token check should fail for empty token")
+	}
+}
+
+func TestDoctorRunMissingProfile(t *testing.T) {
+	cfgDir := t.TempDir()
+	cfgPath := filepath.Join(cfgDir, "config.yaml")
+	cfgContent := `current_profile: test
+profiles:
+  test:
+    token: some-token
+    base_url: https://zenodo.org
+`
+	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0600); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	app := &AppContext{
+		ConfigFile: cfgPath,
+		Profile:    "nonexistent",
+	}
+
+	checks := doctorRun(t.Context(), app)
+	// Should have config=ok, profile=fail
+	if len(checks) < 2 {
+		t.Fatalf("expected at least 2 checks, got %d", len(checks))
+	}
+	if !checks[0].OK {
+		t.Errorf("config check should pass")
+	}
+	if checks[1].OK {
+		t.Error("profile check should fail for missing profile")
+	}
+}
+
+func TestDoctorRunAllPass(t *testing.T) {
+	token := "doctor-test-token"
+	fz := testutil.NewFakeZenodo(token)
+	defer fz.Close()
+
+	cfgDir := t.TempDir()
+	cfgPath := filepath.Join(cfgDir, "config.yaml")
+	cfgContent := fmt.Sprintf(`current_profile: test
+profiles:
+  test:
+    token: %s
+    base_url: https://zenodo.org
+    endpoints:
+      api: %s
+`, token, fz.URL())
+	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0600); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	app := &AppContext{
+		ConfigFile: cfgPath,
+		Profile:    "test",
+	}
+
+	checks := doctorRun(t.Context(), app)
+	if len(checks) != 4 {
+		t.Fatalf("expected 4 checks, got %d", len(checks))
+	}
+	for _, c := range checks {
+		if !c.OK {
+			t.Errorf("check %q should pass: %s", c.Name, c.Message)
+		}
 	}
 }

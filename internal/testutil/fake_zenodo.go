@@ -26,6 +26,8 @@ type fakeRecord struct {
 	Status       string            // draft, published
 	CreatedAt    string
 	UpdatedAt    string
+	LatestID     string // ID of the latest version, if any
+	CommunityID  string // community this record was submitted to
 }
 
 // FakeZenodo is an in-memory HTTP server that simulates the Zenodo InvenioRDM API.
@@ -97,6 +99,18 @@ func (fz *FakeZenodo) registerRoutes(mux *http.ServeMux) {
 			return
 		}
 		fz.handleRecordSubpath(w, r)
+	})
+
+	// List requests
+	mux.HandleFunc("/api/requests", func(w http.ResponseWriter, r *http.Request) {
+		if !fz.checkAuth(w, r) {
+			return
+		}
+		if r.Method != http.MethodGet {
+			http.Error(w, `{"message":"Method not allowed"}`, http.StatusMethodNotAllowed)
+			return
+		}
+		fz.handleListRequests(w)
 	})
 }
 
@@ -274,6 +288,11 @@ func (fz *FakeZenodo) matchRecordRoute(w http.ResponseWriter, r *http.Request, r
 	for _, route := range []exactRoute{
 		{http.MethodPost, "draft/actions/publish", func() { fz.handlePublishDraft(w, recordID) }},
 		{http.MethodPost, "versions", func() { fz.handleNewVersion(w, recordID) }},
+		{http.MethodGet, "versions", func() { fz.handleListVersions(w, recordID) }},
+		{http.MethodGet, "versions/latest", func() { fz.handleResolveLatest(w, recordID) }},
+		{http.MethodPost, "draft/pids/doi", func() { fz.handleReserveDOI(w, recordID) }},
+		{http.MethodPut, "draft/review", func() { fz.handleSubmitToCommunity(w, r, recordID) }},
+		{http.MethodPost, "draft/actions/files-import", func() { fz.handleImportFiles(w, recordID) }},
 		{http.MethodPost, "draft/files", func() { fz.handleInitFileUpload(w, r, recordID) }},
 		{http.MethodGet, "draft/files", func() { fz.handleListFiles(w, recordID, false) }},
 		{http.MethodGet, "files", func() { fz.handleListFiles(w, recordID, true) }},
@@ -461,6 +480,7 @@ func (fz *FakeZenodo) handleNewVersion(w http.ResponseWriter, id string) {
 		UpdatedAt:    now,
 	}
 	fz.records[newID] = newRec
+	rec.LatestID = newID
 	writeJSON(w, http.StatusCreated, fz.recordToJSON(newRec))
 }
 
@@ -665,6 +685,122 @@ func (fz *FakeZenodo) handleDeleteFile(w http.ResponseWriter, id, filename strin
 	http.Error(w, `{"message":"File not found"}`, http.StatusNotFound)
 }
 
+func (fz *FakeZenodo) handleListVersions(w http.ResponseWriter, id string) {
+	fz.mu.Lock()
+	defer fz.mu.Unlock()
+
+	rec, ok := fz.records[id]
+	if !ok {
+		http.Error(w, `{"message":"Record not found"}`, http.StatusNotFound)
+		return
+	}
+
+	hits := []map[string]any{fz.recordToJSON(rec)}
+	// If there's a latest version, include it too
+	if rec.LatestID != "" {
+		if latest, ok := fz.records[rec.LatestID]; ok {
+			hits = append(hits, fz.recordToJSON(latest))
+		}
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"hits": map[string]any{
+			"hits":  hits,
+			"total": len(hits),
+		},
+	})
+}
+
+func (fz *FakeZenodo) handleResolveLatest(w http.ResponseWriter, id string) {
+	fz.mu.Lock()
+	defer fz.mu.Unlock()
+
+	rec, ok := fz.records[id]
+	if !ok {
+		http.Error(w, `{"message":"Record not found"}`, http.StatusNotFound)
+		return
+	}
+	if rec.LatestID == "" {
+		// No newer version, return self
+		writeJSON(w, http.StatusOK, fz.recordToJSON(rec))
+		return
+	}
+	latest, ok := fz.records[rec.LatestID]
+	if !ok {
+		http.Error(w, `{"message":"Latest version not found"}`, http.StatusNotFound)
+		return
+	}
+	writeJSON(w, http.StatusOK, fz.recordToJSON(latest))
+}
+
+func (fz *FakeZenodo) handleReserveDOI(w http.ResponseWriter, id string) {
+	fz.mu.Lock()
+	defer fz.mu.Unlock()
+
+	rec, ok := fz.records[id]
+	if !ok {
+		http.Error(w, `{"message":"Draft not found"}`, http.StatusNotFound)
+		return
+	}
+	writeJSON(w, http.StatusOK, fz.recordToJSON(rec))
+}
+
+func (fz *FakeZenodo) handleSubmitToCommunity(w http.ResponseWriter, r *http.Request, id string) {
+	fz.mu.Lock()
+	defer fz.mu.Unlock()
+
+	rec, ok := fz.records[id]
+	if !ok {
+		http.Error(w, `{"message":"Draft not found"}`, http.StatusNotFound)
+		return
+	}
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, `{"message":"cannot read body"}`, http.StatusBadRequest)
+		return
+	}
+
+	var input map[string]any
+	if err := json.Unmarshal(body, &input); err != nil {
+		http.Error(w, `{"message":"invalid JSON"}`, http.StatusBadRequest)
+		return
+	}
+
+	if receiver, ok := input["receiver"].(map[string]any); ok {
+		if community, ok := receiver["community"].(string); ok {
+			rec.CommunityID = community
+		}
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{"status": "submitted"})
+}
+
+func (fz *FakeZenodo) handleImportFiles(w http.ResponseWriter, id string) {
+	fz.mu.Lock()
+	defer fz.mu.Unlock()
+
+	_, ok := fz.records[id]
+	if !ok {
+		http.Error(w, `{"message":"Draft not found"}`, http.StatusNotFound)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{"status": "imported"})
+}
+
+func (fz *FakeZenodo) handleListRequests(w http.ResponseWriter) {
+	fz.mu.Lock()
+	defer fz.mu.Unlock()
+
+	// Return empty results - enough to exercise the client code
+	writeJSON(w, http.StatusOK, map[string]any{
+		"hits": map[string]any{
+			"hits":  []map[string]any{},
+			"total": 0,
+		},
+	})
+}
+
 func (fz *FakeZenodo) recordToJSON(rec *fakeRecord) map[string]any {
 	files := make([]map[string]any, 0, len(rec.Files))
 	for _, f := range rec.Files {
@@ -675,7 +811,7 @@ func (fz *FakeZenodo) recordToJSON(rec *fakeRecord) map[string]any {
 		})
 	}
 
-	return map[string]any{
+	result := map[string]any{
 		"id":      rec.ID,
 		"status":  rec.Status,
 		"created": rec.CreatedAt,
@@ -689,6 +825,10 @@ func (fz *FakeZenodo) recordToJSON(rec *fakeRecord) map[string]any {
 		},
 		"files": files,
 	}
+	if rec.LatestID != "" {
+		result["links"] = map[string]any{"latest": fmt.Sprintf("/api/records/%s/versions/latest", rec.LatestID)}
+	}
+	return result
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {

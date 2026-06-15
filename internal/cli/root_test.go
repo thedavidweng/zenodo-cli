@@ -213,3 +213,46 @@ func TestSilenceAllCommands(t *testing.T) {
 		t.Error("grandchild SilenceErrors")
 	}
 }
+
+func TestEnvOrWithSetValue(t *testing.T) {
+	t.Setenv("TEST_ENV_OR_KEY", "from-env")
+	v := envOr("TEST_ENV_OR_KEY", "fallback")
+	if v != "from-env" {
+		t.Fatalf("envOr = %q, want %q", v, "from-env")
+	}
+}
+
+func TestEnvOrWithFallback(t *testing.T) {
+	t.Setenv("TEST_ENV_OR_MISSING", "")
+	v := envOr("TEST_ENV_OR_MISSING", "fallback")
+	if v != "fallback" {
+		t.Fatalf("envOr = %q, want %q", v, "fallback")
+	}
+}
+
+func TestEnvDurationInvalidValue(t *testing.T) {
+	t.Setenv("TEST_ENV_DURATION_BAD", "not-a-duration")
+	v := envDuration("TEST_ENV_DURATION_BAD", 5*time.Second, 10*time.Second)
+	// Should fall back to current value since the env is not a valid duration
+	if v != 5*time.Second {
+		t.Fatalf("envDuration = %v, want 5s", v)
+	}
+}
+
+func TestEnvIntInvalidValue(t *testing.T) {
+	t.Setenv("TEST_ENV_INT_BAD", "not-an-int")
+	v := envInt("TEST_ENV_INT_BAD", 3, 5)
+	// Should fall back to current value since the env is not a valid int
+	if v != 3 {
+		t.Fatalf("envInt = %d, want 3", v)
+	}
+}
+
+func TestEnvOrDefaultCurrentNotDefault(t *testing.T) {
+	// When current != default, don't look at env
+	t.Setenv("TEST_ENV_OR_DEFAULT", "env-val")
+	v := envOrDefault("custom", "default", "TEST_ENV_OR_DEFAULT")
+	if v != "custom" {
+		t.Fatalf("envOrDefault = %q, want %q", v, "custom")
+	}
+}

@@ -620,3 +620,97 @@ func TestFilesReadOnlyBlocksDelete(t *testing.T) {
 		t.Error("expected error in read-only mode")
 	}
 }
+
+func TestFilesDeleteWithoutConfirm(t *testing.T) {
+	fz, cfgPath := setupFakeZenodoTest(t)
+	client := newTestClient(fz)
+
+	rec, err := client.CreateRecord(context.Background(), zenodo.RecordMetadata{
+		Title: "No Confirm Delete", Description: "nc", PublicationDate: "2026-01-01",
+		ResourceType: zenodo.ResourceType{Type: "dataset"},
+	})
+	if err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+
+	_, err = runCmd(t, cfgPath, filesSubcmd("delete"), []string{rec.ID, "file.txt"}, nil, nil)
+	if err == nil {
+		t.Error("expected error when --confirm is missing")
+	}
+}
+
+func TestFilesDownloadLatest(t *testing.T) {
+	fz, cfgPath := setupFakeZenodoTest(t)
+	client := newTestClient(fz)
+
+	rec, err := client.CreateRecord(context.Background(), zenodo.RecordMetadata{
+		Title: "Latest Test", Description: "latest", PublicationDate: "2026-01-01",
+		ResourceType: zenodo.ResourceType{Type: "dataset"},
+	})
+	if err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+
+	tmpDir := t.TempDir()
+	tmpFile := filepath.Join(tmpDir, "v1.txt")
+	if err := os.WriteFile(tmpFile, []byte("version 1"), 0644); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	if err := client.UploadFile(context.Background(), rec.ID, tmpFile); err != nil {
+		t.Fatalf("upload: %v", err)
+	}
+
+	_, err = client.PublishDraft(context.Background(), rec.ID)
+	if err != nil {
+		t.Fatalf("publish: %v", err)
+	}
+
+	newVer, err := client.NewVersion(context.Background(), rec.ID)
+	if err != nil {
+		t.Fatalf("new version: %v", err)
+	}
+
+	tmpFile2 := filepath.Join(tmpDir, "v2.txt")
+	if err := os.WriteFile(tmpFile2, []byte("version 2"), 0644); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	if err := client.UploadFile(context.Background(), newVer.ID, tmpFile2); err != nil {
+		t.Fatalf("upload v2: %v", err)
+	}
+
+	_, err = client.PublishDraft(context.Background(), newVer.ID)
+	if err != nil {
+		t.Fatalf("publish v2: %v", err)
+	}
+
+	destDir := t.TempDir()
+	cmd := filesSubcmd("download")
+	out, err := runCmd(t, cfgPath, cmd, []string{rec.ID}, nil, map[string]string{"dest": destDir, "latest": "true"})
+	if err != nil {
+		t.Fatalf("files download --latest: %v", err)
+	}
+	if !strings.Contains(out, "Downloaded") {
+		t.Errorf("expected 'Downloaded' in output: %s", out)
+	}
+}
+
+func TestFilesImportJSON(t *testing.T) {
+	fz, cfgPath := setupFakeZenodoTest(t)
+	client := newTestClient(fz)
+
+	rec, err := client.CreateRecord(context.Background(), zenodo.RecordMetadata{
+		Title: "Import JSON", Description: "json", PublicationDate: "2026-01-01",
+		ResourceType: zenodo.ResourceType{Type: "dataset"},
+	})
+	if err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+
+	out, err := runCmd(t, cfgPath, filesSubcmd("import"), []string{rec.ID}, map[string]bool{"json": true}, nil)
+	if err != nil {
+		t.Fatalf("files import --json: %v", err)
+	}
+	if !strings.Contains(out, rec.ID) {
+		t.Errorf("expected record ID in JSON output: %s", out)
+	}
+}

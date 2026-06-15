@@ -504,9 +504,43 @@ func TestRecordsVersionsCommand(t *testing.T) {
 	if err != nil {
 		t.Fatalf("seed: %v", err)
 	}
+	_, err = client.PublishDraft(context.Background(), rec.ID)
+	if err != nil {
+		t.Fatalf("publish: %v", err)
+	}
 
-	// FakeZenodo doesn't implement /api/records/{id}/versions.
-	_, _ = runCmd(t, cfgPath, recordsSubcmd("versions"), []string{rec.ID}, nil, nil)
+	out, err := runCmd(t, cfgPath, recordsSubcmd("versions"), []string{rec.ID}, nil, nil)
+	if err != nil {
+		t.Fatalf("records versions: %v", err)
+	}
+	if !strings.Contains(out, "Versioned List") {
+		t.Errorf("expected 'Versioned List' in output: %s", out)
+	}
+}
+
+func TestRecordsVersionsCommandJSON(t *testing.T) {
+	fz, cfgPath := setupFakeZenodoTest(t)
+	client := newTestClient(fz)
+
+	rec, err := client.CreateRecord(context.Background(), zenodo.RecordMetadata{
+		Title: "Version JSON", Description: "json", PublicationDate: "2026-01-01",
+		ResourceType: zenodo.ResourceType{Type: "dataset"},
+	})
+	if err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+	_, err = client.PublishDraft(context.Background(), rec.ID)
+	if err != nil {
+		t.Fatalf("publish: %v", err)
+	}
+
+	out, err := runCmd(t, cfgPath, recordsSubcmd("versions"), []string{rec.ID}, map[string]bool{"json": true}, nil)
+	if err != nil {
+		t.Fatalf("records versions --json: %v", err)
+	}
+	if !strings.Contains(out, "Version JSON") {
+		t.Errorf("expected title in JSON output: %s", out)
+	}
 }
 
 func TestRecordsReserveDOICommand(t *testing.T) {
@@ -521,8 +555,34 @@ func TestRecordsReserveDOICommand(t *testing.T) {
 		t.Fatalf("seed: %v", err)
 	}
 
-	// FakeZenodo doesn't implement /draft/pids/doi.
-	_, _ = runCmd(t, cfgPath, recordsSubcmd("reserve-doi"), []string{rec.ID}, nil, nil)
+	out, err := runCmd(t, cfgPath, recordsSubcmd("reserve-doi"), []string{rec.ID}, nil, nil)
+	if err != nil {
+		t.Fatalf("records reserve-doi: %v", err)
+	}
+	if !strings.Contains(out, "Reserved DOI") {
+		t.Errorf("expected 'Reserved DOI' in output: %s", out)
+	}
+}
+
+func TestRecordsReserveDOIJSON(t *testing.T) {
+	fz, cfgPath := setupFakeZenodoTest(t)
+	client := newTestClient(fz)
+
+	rec, err := client.CreateRecord(context.Background(), zenodo.RecordMetadata{
+		Title: "DOI JSON", Description: "json", PublicationDate: "2026-01-01",
+		ResourceType: zenodo.ResourceType{Type: "dataset"},
+	})
+	if err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+
+	out, err := runCmd(t, cfgPath, recordsSubcmd("reserve-doi"), []string{rec.ID}, map[string]bool{"json": true}, nil)
+	if err != nil {
+		t.Fatalf("records reserve-doi --json: %v", err)
+	}
+	if !strings.Contains(out, rec.ID) {
+		t.Errorf("expected record ID in JSON output: %s", out)
+	}
 }
 
 func TestRecordsReserveDOIDryRun(t *testing.T) {
@@ -558,10 +618,38 @@ func TestRecordsSubmitCommand(t *testing.T) {
 		t.Fatalf("seed: %v", err)
 	}
 
-	// FakeZenodo doesn't implement /draft/review.
-	_, _ = runCmd(t, cfgPath, recordsSubcmd("submit"), []string{rec.ID}, map[string]bool{"confirm": true}, map[string]string{
+	out, err := runCmd(t, cfgPath, recordsSubcmd("submit"), []string{rec.ID}, map[string]bool{"confirm": true}, map[string]string{
 		"community": "my-community",
 	})
+	if err != nil {
+		t.Fatalf("records submit: %v", err)
+	}
+	if !strings.Contains(out, "Submitted") {
+		t.Errorf("expected 'Submitted' in output: %s", out)
+	}
+}
+
+func TestRecordsSubmitJSON(t *testing.T) {
+	fz, cfgPath := setupFakeZenodoTest(t)
+	client := newTestClient(fz)
+
+	rec, err := client.CreateRecord(context.Background(), zenodo.RecordMetadata{
+		Title: "Submit JSON", Description: "json", PublicationDate: "2026-01-01",
+		ResourceType: zenodo.ResourceType{Type: "dataset"},
+	})
+	if err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+
+	out, err := runCmd(t, cfgPath, recordsSubcmd("submit"), []string{rec.ID}, map[string]bool{"json": true, "confirm": true}, map[string]string{
+		"community": "test-community",
+	})
+	if err != nil {
+		t.Fatalf("records submit --json: %v", err)
+	}
+	if !strings.Contains(out, rec.ID) {
+		t.Errorf("expected record ID in JSON output: %s", out)
+	}
 }
 
 func TestRecordsSubmitMissingCommunity(t *testing.T) {
@@ -608,8 +696,37 @@ func TestRecordsSubmitDryRun(t *testing.T) {
 func TestRecordsRequestsCommand(t *testing.T) {
 	_, cfgPath := setupFakeZenodoTest(t)
 
-	// FakeZenodo doesn't implement /api/requests.
-	_, _ = runCmd(t, cfgPath, recordsSubcmd("requests"), nil, nil, nil)
+	out, err := runCmd(t, cfgPath, recordsSubcmd("requests"), nil, nil, nil)
+	if err != nil {
+		t.Fatalf("records requests: %v", err)
+	}
+	if !strings.Contains(out, "Total:") {
+		t.Errorf("expected 'Total:' in output: %s", out)
+	}
+}
+
+func TestRecordsRequestsJSON(t *testing.T) {
+	_, cfgPath := setupFakeZenodoTest(t)
+
+	out, err := runCmd(t, cfgPath, recordsSubcmd("requests"), nil, map[string]bool{"json": true}, nil)
+	if err != nil {
+		t.Fatalf("records requests --json: %v", err)
+	}
+	if !strings.Contains(out, "total") {
+		t.Errorf("expected 'total' in JSON output: %s", out)
+	}
+}
+
+func TestRecordsRequestsQuery(t *testing.T) {
+	_, cfgPath := setupFakeZenodoTest(t)
+
+	out, err := runCmd(t, cfgPath, recordsSubcmd("requests"), []string{"test-query"}, nil, nil)
+	if err != nil {
+		t.Fatalf("records requests with query: %v", err)
+	}
+	if !strings.Contains(out, "Total:") {
+		t.Errorf("expected 'Total:' in output: %s", out)
+	}
 }
 
 func TestRecordsCreateJSON(t *testing.T) {
@@ -652,6 +769,42 @@ func TestRecordsCreateMissingMetadataFile(t *testing.T) {
 	})
 	if err == nil {
 		t.Error("expected error for missing metadata file")
+	}
+}
+
+func TestRecordsDeleteWithoutConfirm(t *testing.T) {
+	fz, cfgPath := setupFakeZenodoTest(t)
+	client := newTestClient(fz)
+
+	rec, err := client.CreateRecord(context.Background(), zenodo.RecordMetadata{
+		Title: "No Confirm", Description: "nc", PublicationDate: "2026-01-01",
+		ResourceType: zenodo.ResourceType{Type: "dataset"},
+	})
+	if err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+
+	_, err = runCmd(t, cfgPath, recordsSubcmd("delete"), []string{rec.ID}, nil, nil)
+	if err == nil {
+		t.Error("expected error when --confirm is missing")
+	}
+}
+
+func TestRecordsPublishWithoutConfirm(t *testing.T) {
+	fz, cfgPath := setupFakeZenodoTest(t)
+	client := newTestClient(fz)
+
+	rec, err := client.CreateRecord(context.Background(), zenodo.RecordMetadata{
+		Title: "No Confirm Pub", Description: "nc", PublicationDate: "2026-01-01",
+		ResourceType: zenodo.ResourceType{Type: "dataset"},
+	})
+	if err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+
+	_, err = runCmd(t, cfgPath, recordsSubcmd("publish"), []string{rec.ID}, nil, nil)
+	if err == nil {
+		t.Error("expected error when --confirm is missing")
 	}
 }
 

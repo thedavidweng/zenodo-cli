@@ -2,9 +2,14 @@ package zenodo_test
 
 import (
 	"context"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/thedavidweng/zenodo-cli/internal/testutil"
 	"github.com/thedavidweng/zenodo-cli/internal/zenodo"
@@ -432,5 +437,699 @@ func TestDownloadRecord(t *testing.T) {
 	}
 	if string(data) != string(content) {
 		t.Fatalf("downloaded content = %q, want %q", data, content)
+	}
+}
+
+// --- ListFiles ---
+
+func TestListFiles(t *testing.T) {
+	_, client := newClientAndServer(t)
+	ctx := context.Background()
+
+	rec, err := client.CreateRecord(ctx, zenodo.RecordMetadata{
+		Title: "List Files Test", Description: "desc", PublicationDate: "2026-01-01",
+		ResourceType: zenodo.ResourceType{Type: "dataset"},
+	})
+	if err != nil {
+		t.Fatalf("CreateRecord: %v", err)
+	}
+
+	tmpDir := t.TempDir()
+	tmpFile := filepath.Join(tmpDir, "listme.txt")
+	if err := os.WriteFile(tmpFile, []byte("content"), 0644); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	if err := client.UploadFile(ctx, rec.ID, tmpFile); err != nil {
+		t.Fatalf("UploadFile: %v", err)
+	}
+
+	files, err := client.ListFiles(ctx, rec.ID)
+	if err != nil {
+		t.Fatalf("ListFiles: %v", err)
+	}
+	if len(files) != 1 {
+		t.Fatalf("expected 1 file, got %d", len(files))
+	}
+	if files[0].Key != "listme.txt" {
+		t.Fatalf("Key = %q, want %q", files[0].Key, "listme.txt")
+	}
+}
+
+// --- DeleteFile ---
+
+func TestDeleteFile(t *testing.T) {
+	_, client := newClientAndServer(t)
+	ctx := context.Background()
+
+	rec, err := client.CreateRecord(ctx, zenodo.RecordMetadata{
+		Title: "Delete File Test", Description: "desc", PublicationDate: "2026-01-01",
+		ResourceType: zenodo.ResourceType{Type: "dataset"},
+	})
+	if err != nil {
+		t.Fatalf("CreateRecord: %v", err)
+	}
+
+	tmpDir := t.TempDir()
+	tmpFile := filepath.Join(tmpDir, "deleteme.txt")
+	if err := os.WriteFile(tmpFile, []byte("bye"), 0644); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	if err := client.UploadFile(ctx, rec.ID, tmpFile); err != nil {
+		t.Fatalf("UploadFile: %v", err)
+	}
+
+	if err := client.DeleteFile(ctx, rec.ID, "deleteme.txt"); err != nil {
+		t.Fatalf("DeleteFile: %v", err)
+	}
+
+	files, err := client.ListFiles(ctx, rec.ID)
+	if err != nil {
+		t.Fatalf("ListFiles: %v", err)
+	}
+	if len(files) != 0 {
+		t.Fatalf("expected 0 files after delete, got %d", len(files))
+	}
+}
+
+// --- ListPublishedFiles ---
+
+func TestListPublishedFiles(t *testing.T) {
+	_, client := newClientAndServer(t)
+	ctx := context.Background()
+
+	rec, err := client.CreateRecord(ctx, zenodo.RecordMetadata{
+		Title: "Published Files", Description: "desc", PublicationDate: "2026-01-01",
+		ResourceType: zenodo.ResourceType{Type: "dataset"},
+	})
+	if err != nil {
+		t.Fatalf("CreateRecord: %v", err)
+	}
+
+	tmpDir := t.TempDir()
+	tmpFile := filepath.Join(tmpDir, "pub.txt")
+	if err := os.WriteFile(tmpFile, []byte("pub"), 0644); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	if err := client.UploadFile(ctx, rec.ID, tmpFile); err != nil {
+		t.Fatalf("UploadFile: %v", err)
+	}
+
+	_, err = client.PublishDraft(ctx, rec.ID)
+	if err != nil {
+		t.Fatalf("PublishDraft: %v", err)
+	}
+
+	files, err := client.ListPublishedFiles(ctx, rec.ID)
+	if err != nil {
+		t.Fatalf("ListPublishedFiles: %v", err)
+	}
+	if len(files) != 1 {
+		t.Fatalf("expected 1 file, got %d", len(files))
+	}
+	if files[0].Key != "pub.txt" {
+		t.Fatalf("Key = %q, want %q", files[0].Key, "pub.txt")
+	}
+}
+
+// --- GetFile ---
+
+func TestGetFile(t *testing.T) {
+	_, client := newClientAndServer(t)
+	ctx := context.Background()
+
+	rec, err := client.CreateRecord(ctx, zenodo.RecordMetadata{
+		Title: "Get File Test", Description: "desc", PublicationDate: "2026-01-01",
+		ResourceType: zenodo.ResourceType{Type: "dataset"},
+	})
+	if err != nil {
+		t.Fatalf("CreateRecord: %v", err)
+	}
+
+	tmpDir := t.TempDir()
+	tmpFile := filepath.Join(tmpDir, "info.txt")
+	if err := os.WriteFile(tmpFile, []byte("info data"), 0644); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	if err := client.UploadFile(ctx, rec.ID, tmpFile); err != nil {
+		t.Fatalf("UploadFile: %v", err)
+	}
+
+	f, err := client.GetFile(ctx, rec.ID, "info.txt")
+	if err != nil {
+		t.Fatalf("GetFile: %v", err)
+	}
+	if f.Key != "info.txt" {
+		t.Fatalf("Key = %q, want %q", f.Key, "info.txt")
+	}
+}
+
+// --- ListVersions ---
+
+func TestListVersions(t *testing.T) {
+	_, client := newClientAndServer(t)
+	ctx := context.Background()
+
+	rec, err := client.CreateRecord(ctx, zenodo.RecordMetadata{
+		Title: "Versioned", Description: "desc", PublicationDate: "2026-01-01",
+		ResourceType: zenodo.ResourceType{Type: "dataset"},
+	})
+	if err != nil {
+		t.Fatalf("CreateRecord: %v", err)
+	}
+	_, err = client.PublishDraft(ctx, rec.ID)
+	if err != nil {
+		t.Fatalf("PublishDraft: %v", err)
+	}
+
+	resp, err := client.ListVersions(ctx, rec.ID)
+	if err != nil {
+		t.Fatalf("ListVersions: %v", err)
+	}
+	if resp.Hits.Total < 1 {
+		t.Fatalf("expected at least 1 version, got %d", resp.Hits.Total)
+	}
+}
+
+// --- ReserveDOI ---
+
+func TestReserveDOI(t *testing.T) {
+	_, client := newClientAndServer(t)
+	ctx := context.Background()
+
+	rec, err := client.CreateRecord(ctx, zenodo.RecordMetadata{
+		Title: "DOI Record", Description: "desc", PublicationDate: "2026-01-01",
+		ResourceType: zenodo.ResourceType{Type: "dataset"},
+	})
+	if err != nil {
+		t.Fatalf("CreateRecord: %v", err)
+	}
+
+	result, err := client.ReserveDOI(ctx, rec.ID)
+	if err != nil {
+		t.Fatalf("ReserveDOI: %v", err)
+	}
+	if result.ID != rec.ID {
+		t.Fatalf("ID = %q, want %q", result.ID, rec.ID)
+	}
+}
+
+// --- SubmitToCommunity ---
+
+func TestSubmitToCommunity(t *testing.T) {
+	_, client := newClientAndServer(t)
+	ctx := context.Background()
+
+	rec, err := client.CreateRecord(ctx, zenodo.RecordMetadata{
+		Title: "Submit Record", Description: "desc", PublicationDate: "2026-01-01",
+		ResourceType: zenodo.ResourceType{Type: "dataset"},
+	})
+	if err != nil {
+		t.Fatalf("CreateRecord: %v", err)
+	}
+
+	err = client.SubmitToCommunity(ctx, rec.ID, "my-community")
+	if err != nil {
+		t.Fatalf("SubmitToCommunity: %v", err)
+	}
+}
+
+// --- ImportFiles ---
+
+func TestImportFiles(t *testing.T) {
+	_, client := newClientAndServer(t)
+	ctx := context.Background()
+
+	rec, err := client.CreateRecord(ctx, zenodo.RecordMetadata{
+		Title: "Import Record", Description: "desc", PublicationDate: "2026-01-01",
+		ResourceType: zenodo.ResourceType{Type: "dataset"},
+	})
+	if err != nil {
+		t.Fatalf("CreateRecord: %v", err)
+	}
+
+	err = client.ImportFiles(ctx, rec.ID)
+	if err != nil {
+		t.Fatalf("ImportFiles: %v", err)
+	}
+}
+
+// --- ListRequests ---
+
+func TestListRequests(t *testing.T) {
+	_, client := newClientAndServer(t)
+	ctx := context.Background()
+
+	_, err := client.ListRequests(ctx, "")
+	if err != nil {
+		t.Fatalf("ListRequests: %v", err)
+	}
+
+	_, err = client.ListRequests(ctx, "test-query")
+	if err != nil {
+		t.Fatalf("ListRequests with query: %v", err)
+	}
+}
+
+// --- ResolveLatest ---
+
+func TestResolveLatestNoNewerVersion(t *testing.T) {
+	_, client := newClientAndServer(t)
+	ctx := context.Background()
+
+	rec, err := client.CreateRecord(ctx, zenodo.RecordMetadata{
+		Title: "No Newer", Description: "desc", PublicationDate: "2026-01-01",
+		ResourceType: zenodo.ResourceType{Type: "dataset"},
+	})
+	if err != nil {
+		t.Fatalf("CreateRecord: %v", err)
+	}
+	_, err = client.PublishDraft(ctx, rec.ID)
+	if err != nil {
+		t.Fatalf("PublishDraft: %v", err)
+	}
+
+	resolved, err := client.ResolveLatest(ctx, rec.ID)
+	if err != nil {
+		t.Fatalf("ResolveLatest: %v", err)
+	}
+	if resolved != rec.ID {
+		t.Fatalf("resolved = %q, want %q (no newer version)", resolved, rec.ID)
+	}
+}
+
+func TestResolveLatestWithNewerVersion(t *testing.T) {
+	_, client := newClientAndServer(t)
+	ctx := context.Background()
+
+	rec, err := client.CreateRecord(ctx, zenodo.RecordMetadata{
+		Title: "Original", Description: "desc", PublicationDate: "2026-01-01",
+		ResourceType: zenodo.ResourceType{Type: "dataset"},
+	})
+	if err != nil {
+		t.Fatalf("CreateRecord: %v", err)
+	}
+	_, err = client.PublishDraft(ctx, rec.ID)
+	if err != nil {
+		t.Fatalf("PublishDraft: %v", err)
+	}
+
+	newVer, err := client.NewVersion(ctx, rec.ID)
+	if err != nil {
+		t.Fatalf("NewVersion: %v", err)
+	}
+	_, err = client.PublishDraft(ctx, newVer.ID)
+	if err != nil {
+		t.Fatalf("PublishDraft new version: %v", err)
+	}
+
+	resolved, err := client.ResolveLatest(ctx, rec.ID)
+	if err != nil {
+		t.Fatalf("ResolveLatest: %v", err)
+	}
+	if resolved != newVer.ID {
+		t.Fatalf("resolved = %q, want %q", resolved, newVer.ID)
+	}
+}
+
+func TestResolveLatestNotFound(t *testing.T) {
+	_, client := newClientAndServer(t)
+	ctx := context.Background()
+
+	_, err := client.ResolveLatest(ctx, "999999")
+	if err == nil {
+		t.Fatal("expected error for non-existent record")
+	}
+}
+
+// --- Do (public wrapper) ---
+
+func TestDoPublicWrapper(t *testing.T) {
+	_, client := newClientAndServer(t)
+	ctx := context.Background()
+
+	var resp map[string]any
+	err := client.Do(ctx, "GET", "/api/user/records", nil, &resp)
+	if err != nil {
+		t.Fatalf("Do: %v", err)
+	}
+}
+
+// --- handleResponse error paths ---
+
+func TestHandleResponseStructuredError(t *testing.T) {
+	_, client := newClientAndServer(t)
+	ctx := context.Background()
+
+	// Try to get a non-existent draft to trigger a 404 with structured error
+	_, err := client.GetDraft(ctx, "999999")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "404") {
+		t.Fatalf("error should contain 404, got: %v", err)
+	}
+}
+
+func TestHandleResponseNoContent(t *testing.T) {
+	_, client := newClientAndServer(t)
+	ctx := context.Background()
+
+	rec, err := client.CreateRecord(ctx, zenodo.RecordMetadata{
+		Title: "204 Test", Description: "desc", PublicationDate: "2026-01-01",
+		ResourceType: zenodo.ResourceType{Type: "dataset"},
+	})
+	if err != nil {
+		t.Fatalf("CreateRecord: %v", err)
+	}
+
+	// DeleteDraft returns 204 No Content
+	err = client.DeleteDraft(ctx, rec.ID)
+	if err != nil {
+		t.Fatalf("DeleteDraft should succeed with 204: %v", err)
+	}
+}
+
+// --- NewClient trailing slash ---
+
+func TestNewClientTrailingSlash(t *testing.T) {
+	c := zenodo.NewClient("https://zenodo.org/api/", "tok")
+	if c.BaseURL != "https://zenodo.org/api" {
+		t.Fatalf("BaseURL = %q, want %q", c.BaseURL, "https://zenodo.org/api")
+	}
+}
+
+// --- Error path tests ---
+
+func newErrorServer(t *testing.T, statusCode int, body string) *zenodo.Client {
+	t.Helper()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(statusCode)
+		fmt.Fprint(w, body)
+	}))
+	t.Cleanup(srv.Close)
+	return zenodo.NewClient(srv.URL, "tok")
+}
+
+func TestPublishDraftError(t *testing.T) {
+	client := newErrorServer(t, 404, `{"message":"not found"}`)
+	ctx := context.Background()
+	_, err := client.PublishDraft(ctx, "999")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestNewVersionError(t *testing.T) {
+	client := newErrorServer(t, 404, `{"message":"not found"}`)
+	ctx := context.Background()
+	_, err := client.NewVersion(ctx, "999")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestListFilesError(t *testing.T) {
+	client := newErrorServer(t, 404, `{"message":"not found"}`)
+	ctx := context.Background()
+	_, err := client.ListFiles(ctx, "999")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestListPublishedFilesError(t *testing.T) {
+	client := newErrorServer(t, 404, `{"message":"not found"}`)
+	ctx := context.Background()
+	_, err := client.ListPublishedFiles(ctx, "999")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestReserveDOIError(t *testing.T) {
+	client := newErrorServer(t, 404, `{"message":"not found"}`)
+	ctx := context.Background()
+	_, err := client.ReserveDOI(ctx, "999")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestGetFileError(t *testing.T) {
+	client := newErrorServer(t, 404, `{"message":"not found"}`)
+	ctx := context.Background()
+	_, err := client.GetFile(ctx, "999", "x.txt")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestUploadFileError(t *testing.T) {
+	client := newErrorServer(t, 500, `{"message":"internal error"}`)
+	ctx := context.Background()
+
+	tmpDir := t.TempDir()
+	tmpFile := filepath.Join(tmpDir, "err.txt")
+	if err := os.WriteFile(tmpFile, []byte("x"), 0644); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+
+	err := client.UploadFile(ctx, "999", tmpFile)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestDownloadRecordError(t *testing.T) {
+	client := newErrorServer(t, 404, `{"message":"not found"}`)
+	ctx := context.Background()
+	err := client.DownloadRecord(ctx, "999", t.TempDir())
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestListVersionsError(t *testing.T) {
+	client := newErrorServer(t, 404, `{"message":"not found"}`)
+	ctx := context.Background()
+	_, err := client.ListVersions(ctx, "999")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestSubmitToCommunityError(t *testing.T) {
+	client := newErrorServer(t, 404, `{"message":"not found"}`)
+	ctx := context.Background()
+	err := client.SubmitToCommunity(ctx, "999", "community")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestImportFilesError(t *testing.T) {
+	client := newErrorServer(t, 404, `{"message":"not found"}`)
+	ctx := context.Background()
+	err := client.ImportFiles(ctx, "999")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestListRequestsError(t *testing.T) {
+	client := newErrorServer(t, 500, `{"message":"server error"}`)
+	ctx := context.Background()
+	_, err := client.ListRequests(ctx, "")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+// Test context cancellation during retry
+func TestDoContextCancelled(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(500)
+		fmt.Fprint(w, `{"message":"retry me"}`)
+	}))
+	t.Cleanup(srv.Close)
+
+	client := zenodo.NewClient(srv.URL, "tok")
+	client.Retries = 5
+	client.RequestInterval = 1 * time.Second
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // cancel immediately
+
+	_, err := client.ListRecords(ctx)
+	if err == nil {
+		t.Fatal("expected error from cancelled context")
+	}
+}
+
+// Test retry exhaustion
+func TestDoRetryExhaustion(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(500)
+		fmt.Fprint(w, `{"message":"always fail"}`)
+	}))
+	t.Cleanup(srv.Close)
+
+	client := zenodo.NewClient(srv.URL, "tok")
+	client.Retries = 2
+	client.RequestInterval = 1 * time.Millisecond
+
+	ctx := context.Background()
+	_, err := client.ListRecords(ctx)
+	if err == nil {
+		t.Fatal("expected error after retry exhaustion")
+	}
+}
+
+// Test non-JSON error body
+func TestHandleResponseNonJSONError(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(500)
+		fmt.Fprint(w, `plain text error`)
+	}))
+	t.Cleanup(srv.Close)
+
+	client := zenodo.NewClient(srv.URL, "tok")
+	client.Retries = 0
+
+	ctx := context.Background()
+	_, err := client.ListRecords(ctx)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "500") {
+		t.Fatalf("error should contain 500, got: %v", err)
+	}
+}
+
+// Test structured API error with field errors
+func TestHandleResponseStructuredFieldError(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(400)
+		fmt.Fprint(w, `{"message":"Validation error","status":400,"errors":[{"field":"metadata.title","messages":["Missing data for required field."]}`)
+	}))
+	t.Cleanup(srv.Close)
+
+	client := zenodo.NewClient(srv.URL, "tok")
+	client.Retries = 0
+
+	ctx := context.Background()
+	_, err := client.ListRecords(ctx)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "400") {
+		t.Fatalf("error should contain 400, got: %v", err)
+	}
+}
+
+// Test 4xx error not retried
+func TestDoNotRetry4xx(t *testing.T) {
+	attempts := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		attempts++
+		w.WriteHeader(403)
+		fmt.Fprint(w, `{"message":"forbidden"}`)
+	}))
+	t.Cleanup(srv.Close)
+
+	client := zenodo.NewClient(srv.URL, "tok")
+	client.Retries = 3
+	client.RequestInterval = 1 * time.Millisecond
+
+	ctx := context.Background()
+	_, err := client.ListRecords(ctx)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if attempts != 1 {
+		t.Fatalf("expected 1 attempt (no retry for 4xx), got %d", attempts)
+	}
+}
+
+// Test doRaw with context cancellation
+func TestDoRawContextCancelled(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(500)
+	}))
+	t.Cleanup(srv.Close)
+
+	client := zenodo.NewClient(srv.URL, "tok")
+	client.Retries = 5
+	client.RequestInterval = 1 * time.Second
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	// UploadFile calls doRaw internally
+	tmpDir := t.TempDir()
+	tmpFile := filepath.Join(tmpDir, "cancel.txt")
+	os.WriteFile(tmpFile, []byte("x"), 0644)
+
+	err := client.UploadFile(ctx, "1", tmpFile)
+	if err == nil {
+		t.Fatal("expected error from cancelled context")
+	}
+}
+
+// Test doRaw retry exhaustion
+func TestDoRawRetryExhaustion(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(500)
+	}))
+	t.Cleanup(srv.Close)
+
+	client := zenodo.NewClient(srv.URL, "tok")
+	client.Retries = 2
+	client.RequestInterval = 1 * time.Millisecond
+
+	ctx := context.Background()
+	tmpDir := t.TempDir()
+	tmpFile := filepath.Join(tmpDir, "retry.txt")
+	os.WriteFile(tmpFile, []byte("x"), 0644)
+
+	err := client.UploadFile(ctx, "1", tmpFile)
+	if err == nil {
+		t.Fatal("expected error after retry exhaustion")
+	}
+}
+
+// Test downloadFile error path
+func TestDownloadFileHTTPError(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(404)
+	}))
+	t.Cleanup(srv.Close)
+
+	client := zenodo.NewClient(srv.URL, "tok")
+	client.Retries = 0
+
+	// We need to create the record metadata first via a different server
+	// Actually, downloadFile is private and only called via DownloadRecord.
+	// DownloadRecord first calls GetRecord. Let's make the server return
+	// a valid record for GET /api/records/{id} but 404 for the file content.
+
+	srv2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.Contains(r.URL.Path, "/files/") && strings.HasSuffix(r.URL.Path, "/content") {
+			w.WriteHeader(404)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(200)
+		fmt.Fprint(w, `{"id":"1","status":"published","metadata":{"title":"t"},"files":[{"key":"missing.txt","size":0}]}`)
+	}))
+	t.Cleanup(srv2.Close)
+
+	client2 := zenodo.NewClient(srv2.URL, "tok")
+	client2.Retries = 0
+
+	err := client2.DownloadRecord(context.Background(), "1", t.TempDir())
+	if err == nil {
+		t.Fatal("expected error for missing file")
 	}
 }
