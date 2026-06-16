@@ -299,3 +299,63 @@ func TestPrettyJSON(t *testing.T) {
 		t.Errorf("pretty JSON should contain newlines, got %q", raw)
 	}
 }
+
+func TestFullJSONNilWarnings(t *testing.T) {
+	var out bytes.Buffer
+	r := Renderer{Full: true, JSON: true, Out: &out}
+	meta := RuntimeMetaInput{Command: "test", StartedAt: time.Now()}
+
+	if err := r.Success(meta, nil, nil); err != nil {
+		t.Fatalf("Success: %v", err)
+	}
+
+	raw := out.String()
+	if !strings.Contains(raw, `"warnings"`) {
+		t.Errorf("full JSON should include warnings field, got %q", raw)
+	}
+	// Nil warnings should be converted to empty array in full mode
+	if !strings.Contains(raw, `"warnings":[]`) {
+		t.Errorf("full JSON with nil warnings should have empty array, got %q", raw)
+	}
+
+	var env model.Envelope
+	if err := json.Unmarshal(out.Bytes(), &env); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if env.Meta.Warnings == nil {
+		t.Error("expected non-nil warnings slice after unmarshal")
+	}
+	if len(env.Meta.Warnings) != 0 {
+		t.Errorf("warnings length = %d, want 0", len(env.Meta.Warnings))
+	}
+}
+
+func TestFullJSONWithWarnings(t *testing.T) {
+	var out bytes.Buffer
+	r := Renderer{Full: true, JSON: true, Out: &out}
+	meta := RuntimeMetaInput{Command: "test", StartedAt: time.Now()}
+	warnings := []string{"deprecated field", "rate limit approaching"}
+
+	if err := r.Success(meta, nil, warnings); err != nil {
+		t.Fatalf("Success: %v", err)
+	}
+
+	raw := out.String()
+	if !strings.Contains(raw, `"warnings"`) {
+		t.Errorf("full JSON should include warnings field, got %q", raw)
+	}
+	if !strings.Contains(raw, "deprecated field") {
+		t.Errorf("full JSON should contain warning text, got %q", raw)
+	}
+	if !strings.Contains(raw, "rate limit approaching") {
+		t.Errorf("full JSON should contain warning text, got %q", raw)
+	}
+
+	var env model.Envelope
+	if err := json.Unmarshal(out.Bytes(), &env); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if len(env.Meta.Warnings) != 2 {
+		t.Errorf("warnings count = %d, want 2", len(env.Meta.Warnings))
+	}
+}

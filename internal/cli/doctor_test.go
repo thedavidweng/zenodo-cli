@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -202,5 +204,100 @@ profiles:
 		if !c.OK {
 			t.Errorf("check %q should pass: %s", c.Name, c.Message)
 		}
+	}
+}
+
+func TestDoctorRunAPIFail(t *testing.T) {
+	// Server that returns 500 for all requests
+	failServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, `{"message":"internal server error"}`, http.StatusInternalServerError)
+	}))
+	defer failServer.Close()
+
+	cfgDir := t.TempDir()
+	cfgPath := filepath.Join(cfgDir, "config.yaml")
+	cfgContent := fmt.Sprintf(`current_profile: test
+profiles:
+  test:
+    token: some-token
+    base_url: https://zenodo.org
+    endpoints:
+      api: %s
+`, failServer.URL)
+	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0600); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	app := &AppContext{
+		ConfigFile: cfgPath,
+		Profile:    "test",
+	}
+
+	checks := doctorRun(t.Context(), app)
+	if len(checks) != 4 {
+		t.Fatalf("expected 4 checks, got %d", len(checks))
+	}
+	// config, profile, token should pass
+	if !checks[0].OK {
+		t.Errorf("config check should pass: %s", checks[0].Message)
+	}
+	if !checks[1].OK {
+		t.Errorf("profile check should pass: %s", checks[1].Message)
+	}
+	if !checks[2].OK {
+		t.Errorf("token check should pass: %s", checks[2].Message)
+	}
+	// api should fail
+	if checks[3].OK {
+		t.Error("api check should fail for 500 response")
+	}
+}
+
+func TestDoctorHumanOutputPartialFail(t *testing.T) {
+	// Config loads fine, token is set, but API is unreachable
+	failServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, `{"message":"internal server error"}`, http.StatusInternalServerError)
+	}))
+	defer failServer.Close()
+
+	cfgDir := t.TempDir()
+	cfgPath := filepath.Join(cfgDir, "config.yaml")
+	cfgContent := fmt.Sprintf(`current_profile: test
+profiles:
+  test:
+    token: some-token
+    base_url: https://zenodo.org
+    endpoints:
+      api: %s
+`, failServer.URL)
+	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0600); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	var out bytes.Buffer
+	cmd := &cobra.Command{}
+	cmd.SetOut(&out)
+	cmd.SetErr(&bytes.Buffer{})
+	cmd.SetContext(WithAppContext(t.Context(), &AppContext{
+		ConfigFile: cfgPath,
+		Profile:    "test",
+		StartedAt:  __testNow(),
+		RequestID:  "test",
+	}))
+
+	err := doctorCmd.RunE(cmd, nil)
+	if err != nil {
+		t.Fatalf("RunE: %v", err)
+	}
+
+	output := out.String()
+	if !strings.Contains(output, "FAIL") {
+		t.Errorf("output should contain 'FAIL', got %q", output)
+	}
+	if !strings.Contains(output, "PASS") {
+		t.Errorf("output should contain 'PASS' for passing checks, got %q", output)
+	}
+	if !strings.Contains(output, "Some checks failed") {
+		t.Errorf("output should contain 'Some checks failed', got %q", output)
 	}
 }

@@ -2,12 +2,14 @@ package zenodo_test
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -1011,7 +1013,7 @@ func TestHandleResponseNonJSONError(t *testing.T) {
 func TestHandleResponseStructuredFieldError(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(400)
-		_, _ = fmt.Fprint(w, `{"message":"Validation error","status":400,"errors":[{"field":"metadata.title","messages":["Missing data for required field."]}`)
+		_, _ = fmt.Fprint(w, `{"message":"Validation error","status":400,"errors":[{"field":"metadata.title","messages":["Missing data for required field."]}]}`)
 	}))
 	t.Cleanup(srv.Close)
 
@@ -1131,5 +1133,280 @@ func TestDownloadFileHTTPError(t *testing.T) {
 	err := client2.DownloadRecord(context.Background(), "1", t.TempDir())
 	if err == nil {
 		t.Fatal("expected error for missing file")
+	}
+}
+
+// --- UnmarshalJSON edge cases ---
+
+func TestUnmarshalJSONBooleanID(t *testing.T) {
+	// JSON boolean ID should hit the default case in UnmarshalJSON
+	data := `{"id": true, "metadata": {"title": "test"}, "status": "draft"}`
+	var rec zenodo.Record
+	if err := json.Unmarshal([]byte(data), &rec); err != nil {
+		t.Fatalf("UnmarshalJSON: %v", err)
+	}
+	if rec.ID != "true" {
+		t.Errorf("ID = %q, want %q", rec.ID, "true")
+	}
+}
+
+func TestUnmarshalJSONNullID(t *testing.T) {
+	data := `{"id": null, "metadata": {"title": "test"}, "status": "draft"}`
+	var rec zenodo.Record
+	if err := json.Unmarshal([]byte(data), &rec); err != nil {
+		t.Fatalf("UnmarshalJSON: %v", err)
+	}
+	if rec.ID != "<nil>" {
+		t.Errorf("ID = %q, want %q", rec.ID, "<nil>")
+	}
+}
+
+func TestUnmarshalJSONInvalidData(t *testing.T) {
+	var rec zenodo.Record
+	err := json.Unmarshal([]byte(`{invalid`), &rec)
+	if err == nil {
+		t.Fatal("expected error for invalid JSON")
+	}
+}
+
+// --- doRaw: xx should NOT retry ---
+
+func TestDoRawNotRetry4xx(t *testing.T) {
+	var contentAttempts atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/draft/files") {
+			// Init succeeds
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(200)
+			_, _ = fmt.Fprint(w, `{}`)
+			return
+		}
+		if r.Method == http.MethodPut && strings.Contains(r.URL.Path, "/content") {
+			// Content upload returns 403
+			contentAttempts.Add(1)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(403)
+			_, _ = fmt.Fprint(w, `{"message":"forbidden"}`)
+			return
+		}
+		// Commit
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(200)
+		_, _ = fmt.Fprint(w, `{}`)
+	}))
+	t.Cleanup(srv.Close)
+
+	client := zenodo.NewClient(srv.URL, "tok")
+	client.Retries = 3
+	client.RequestInterval = 1 * time.Millisecond
+
+	tmpDir := t.TempDir()
+	tmpFile := filepath.Join(tmpDir, "no-retry.txt")
+	_ = os.WriteFile(tmpFile, []byte("data"), 0644)
+
+	err := client.UploadFile(context.Background(), "1", tmpFile)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if n := contentAttempts.Load(); n != 1 {
+		t.Fatalf("expected 1 content attempt (no retry for 4xx), got %d", n)
+	}
+}
+
+// --- doRaw retry exhaustion on content upload ---
+
+func TestDoRawContentRetryExhaustion(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/draft/files") {
+			// Init succeeds
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(200)
+			_, _ = fmt.Fprint(w, `{}`)
+			return
+		}
+		// Content upload always fails with 500
+		w.WriteHeader(500)
+	}))
+	t.Cleanup(srv.Close)
+
+	client := zenodo.NewClient(srv.URL, "tok")
+	client.Retries = 2
+	client.RequestInterval = 1 * time.Millisecond
+
+	tmpDir := t.TempDir()
+	tmpFile := filepath.Join(tmpDir, "retry.txt")
+	_ = os.WriteFile(tmpFile, []byte("data"), 0644)
+
+	err := client.UploadFile(context.Background(), "1", tmpFile)
+	if err == nil {
+		t.Fatal("expected error after retry exhaustion")
+	}
+	if !strings.Contains(err.Error(), "upload content") {
+		t.Fatalf("error should mention upload content, got: %v", err)
+	}
+}
+
+// --- handleResponse: invalid JSON body with non-nil result ---
+
+func TestHandleResponseInvalidJSONDecode(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(200)
+		_, _ = fmt.Fprint(w, `{not valid json}`)
+	}))
+	t.Cleanup(srv.Close)
+
+	client := zenodo.NewClient(srv.URL, "tok")
+	client.Retries = 0
+
+	_, err := client.ListRecords(context.Background())
+	if err == nil {
+		t.Fatal("expected decode error")
+	}
+	if !strings.Contains(err.Error(), "decode response") {
+		t.Fatalf("error should mention decode, got: %v", err)
+	}
+}
+
+// --- DownloadRecord: destination directory creation failure ---
+
+func TestDownloadRecordDirCreateError(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(200)
+		_, _ = fmt.Fprint(w, `{"id":"1","status":"published","metadata":{"title":"t"},"files":[{"key":"f.txt","size":0}]}`)
+	}))
+	t.Cleanup(srv.Close)
+
+	client := zenodo.NewClient(srv.URL, "tok")
+	client.Retries = 0
+
+	// Create a file at the destination path so MkdirAll fails
+	tmpDir := t.TempDir()
+	blockingFile := filepath.Join(tmpDir, "blocked")
+	if err := os.WriteFile(blockingFile, []byte("x"), 0644); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+
+	// Try to use the file as a directory
+	err := client.DownloadRecord(context.Background(), "1", filepath.Join(blockingFile, "sub"))
+	if err == nil {
+		t.Fatal("expected error when directory can't be created")
+	}
+	if !strings.Contains(err.Error(), "create dir") {
+		t.Fatalf("error should mention create dir, got: %v", err)
+	}
+}
+
+// --- CreateRecord: server error ---
+
+func TestCreateRecordError(t *testing.T) {
+	client := newErrorServer(t, 500, `{"message":"internal error"}`)
+	ctx := context.Background()
+	_, err := client.CreateRecord(ctx, zenodo.RecordMetadata{Title: "fail"})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+// --- UpdateDraft: server error ---
+
+func TestUpdateDraftError(t *testing.T) {
+	client := newErrorServer(t, 500, `{"message":"internal error"}`)
+	ctx := context.Background()
+	_, err := client.UpdateDraft(ctx, "999", zenodo.RecordMetadata{Title: "fail"})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+// --- UploadFile: init step fails ---
+
+func TestUploadFileInitError(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/draft/files") {
+			// Init fails
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(500)
+			_, _ = fmt.Fprint(w, `{"message":"init failed"}`)
+			return
+		}
+		w.WriteHeader(200)
+	}))
+	t.Cleanup(srv.Close)
+
+	client := zenodo.NewClient(srv.URL, "tok")
+	client.Retries = 0
+
+	tmpDir := t.TempDir()
+	tmpFile := filepath.Join(tmpDir, "init-err.txt")
+	_ = os.WriteFile(tmpFile, []byte("data"), 0644)
+
+	err := client.UploadFile(context.Background(), "1", tmpFile)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "init upload") {
+		t.Fatalf("error should mention init upload, got: %v", err)
+	}
+}
+
+// --- UploadFile: commit step fails ---
+
+func TestUploadFileCommitError(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/draft/files") {
+			// Init succeeds
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(200)
+			_, _ = fmt.Fprint(w, `{}`)
+			return
+		}
+		if r.Method == http.MethodPut && strings.Contains(r.URL.Path, "/content") {
+			// Content upload succeeds
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(200)
+			_, _ = fmt.Fprint(w, `{}`)
+			return
+		}
+		if strings.Contains(r.URL.Path, "/commit") {
+			// Commit fails
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(500)
+			_, _ = fmt.Fprint(w, `{"message":"commit failed"}`)
+			return
+		}
+		w.WriteHeader(200)
+	}))
+	t.Cleanup(srv.Close)
+
+	client := zenodo.NewClient(srv.URL, "tok")
+	client.Retries = 0
+
+	tmpDir := t.TempDir()
+	tmpFile := filepath.Join(tmpDir, "commit-err.txt")
+	_ = os.WriteFile(tmpFile, []byte("data"), 0644)
+
+	err := client.UploadFile(context.Background(), "1", tmpFile)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "commit file") {
+		t.Fatalf("error should mention commit file, got: %v", err)
+	}
+}
+
+// --- UploadFile: nonexistent file ---
+
+func TestUploadFileNonexistentFile(t *testing.T) {
+	_, client := newClientAndServer(t)
+	ctx := context.Background()
+
+	err := client.UploadFile(ctx, "1", "/nonexistent/path/file.txt")
+	if err == nil {
+		t.Fatal("expected error for nonexistent file")
+	}
+	if !strings.Contains(err.Error(), "read file") {
+		t.Fatalf("error should mention read file, got: %v", err)
 	}
 }
