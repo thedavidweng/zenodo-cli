@@ -1,10 +1,13 @@
 package cli
 
 import (
+	"bytes"
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/spf13/cobra"
 )
@@ -222,6 +225,48 @@ func TestAuthStatusNotConfigured(t *testing.T) {
 	_, err := runCmd(t, cfgPath, authSubcmd("status"), nil, nil, nil)
 	if err == nil {
 		t.Error("expected error when not configured")
+	}
+}
+
+func TestAuthStatusProfileNotFound(t *testing.T) {
+	cfgDir := t.TempDir()
+	cfgPath := filepath.Join(cfgDir, "config.yaml")
+	cfgContent := `current_profile: test
+profiles:
+  test:
+    token: some-token
+    base_url: https://zenodo.org
+`
+	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0600); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	statusCmd := authSubcmd("status")
+	resetFlags(statusCmd)
+
+	var outBuf bytes.Buffer
+	statusCmd.SetOut(&outBuf)
+	statusCmd.SetErr(&outBuf)
+
+	app := &AppContext{
+		ConfigFile: cfgPath,
+		Profile:    "nonexistent",
+		Timeout:    30 * time.Second,
+		Retries:    0,
+		StartedAt:  time.Now(),
+		RequestID:  "test-request",
+		JSON:       true,
+	}
+	ctx := WithAppContext(context.Background(), app)
+	statusCmd.SetContext(ctx)
+
+	err := statusCmd.RunE(statusCmd, nil)
+	if err == nil {
+		t.Error("expected error for nonexistent profile")
+	}
+	output := outBuf.String()
+	if !strings.Contains(output, "not configured") {
+		t.Errorf("expected 'not configured' in output: %s", output)
 	}
 }
 

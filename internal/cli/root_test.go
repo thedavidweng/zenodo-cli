@@ -256,3 +256,74 @@ func TestEnvOrDefaultCurrentNotDefault(t *testing.T) {
 		t.Fatalf("envOrDefault = %q, want %q", v, "custom")
 	}
 }
+
+func TestEnvDurationValidValue(t *testing.T) {
+	t.Setenv("ZENODO_TEST_DUR", "30s")
+	// current == default so env is checked
+	v := envDuration("ZENODO_TEST_DUR", 5*time.Minute, 5*time.Minute)
+	if v != 30*time.Second {
+		t.Fatalf("envDuration = %v, want 30s", v)
+	}
+}
+
+func TestEnvIntValidValue(t *testing.T) {
+	t.Setenv("ZENODO_TEST_INT", "42")
+	// current == default so env is checked
+	v := envInt("ZENODO_TEST_INT", 3, 3)
+	if v != 42 {
+		t.Fatalf("envInt = %d, want 42", v)
+	}
+}
+
+func TestEnvDurationCurrentNotDefault(t *testing.T) {
+	// When current != default, should return current without checking env
+	t.Setenv("ZENODO_TEST_DUR_SKIP", "99s")
+	v := envDuration("ZENODO_TEST_DUR_SKIP", 15*time.Second, 5*time.Minute)
+	if v != 15*time.Second {
+		t.Fatalf("envDuration = %v, want 15s (should ignore env)", v)
+	}
+}
+
+func TestEnvIntCurrentNotDefault(t *testing.T) {
+	// When current != default, should return current without checking env
+	t.Setenv("ZENODO_TEST_INT_SKIP", "99")
+	v := envInt("ZENODO_TEST_INT_SKIP", 7, 3)
+	if v != 7 {
+		t.Fatalf("envInt = %d, want 7 (should ignore env)", v)
+	}
+}
+
+func TestEnvDurationEmptyEnvReturnsCurrent(t *testing.T) {
+	// current == default, env is unset → should return current
+	t.Setenv("ZENODO_TEST_DUR_EMPTY", "")
+	v := envDuration("ZENODO_TEST_DUR_EMPTY", 5*time.Second, 5*time.Second)
+	if v != 5*time.Second {
+		t.Fatalf("envDuration = %v, want 5s", v)
+	}
+}
+
+func TestEnvIntEmptyEnvReturnsCurrent(t *testing.T) {
+	// current == default, env is unset → should return current
+	t.Setenv("ZENODO_TEST_INT_EMPTY", "")
+	v := envInt("ZENODO_TEST_INT_EMPTY", 3, 3)
+	if v != 3 {
+		t.Fatalf("envInt = %d, want 3", v)
+	}
+}
+
+func TestRootValidationRejectsNegativeRetries(t *testing.T) {
+	cmd := newRootCmd()
+	var capturedErr error
+	dummy := &cobra.Command{
+		Use: "dummy",
+		RunE: func(c *cobra.Command, args []string) error {
+			return nil
+		},
+	}
+	cmd.AddCommand(dummy)
+	cmd.SetArgs([]string{"--retries", "-1", "dummy"})
+	capturedErr = cmd.Execute()
+	if capturedErr == nil {
+		t.Error("expected error for negative retries")
+	}
+}

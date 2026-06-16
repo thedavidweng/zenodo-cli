@@ -2,6 +2,9 @@ package cli
 
 import (
 	"bytes"
+	"context"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -220,5 +223,66 @@ func TestGetClientWithSandboxOverride(t *testing.T) {
 	// so the client should still use the fake server URL
 	if client.BaseURL != fz.URL() {
 		t.Errorf("BaseURL = %q, want %q (endpoint override)", client.BaseURL, fz.URL())
+	}
+}
+
+func TestGetClientSandboxNonDefaultURL(t *testing.T) {
+	// When base_url is NOT the default zenodo.org URL, sandbox flag
+	// should NOT swap the URL (it only swaps when base_url == "https://zenodo.org")
+	cfgDir := t.TempDir()
+	cfgPath := filepath.Join(cfgDir, "config.yaml")
+	cfgContent := `current_profile: test
+profiles:
+  test:
+    token: some-token
+    base_url: https://sandbox.zenodo.org
+`
+	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0600); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	app := &AppContext{
+		ConfigFile: cfgPath,
+		Profile:    "test",
+		Sandbox:    true,
+		Timeout:    30 * time.Second,
+		Retries:    0,
+	}
+
+	client, err := getClient(app)
+	if err != nil {
+		t.Fatalf("getClient: %v", err)
+	}
+	// base_url was already sandbox.zenodo.org, so sandbox flag should not change it
+	if client.BaseURL != "https://sandbox.zenodo.org" {
+		t.Errorf("BaseURL = %q, want https://sandbox.zenodo.org (no swap expected)", client.BaseURL)
+	}
+}
+
+func TestWithAuthGetClientError(t *testing.T) {
+	// withAuth should return error when getClient fails (nonexistent config)
+	wrapped := withAuth("test.command", func(ctx *CmdContext) error {
+		t.Error("handler should not be called")
+		return nil
+	})
+
+	app := &AppContext{
+		ConfigFile: "/nonexistent/config.yaml",
+		Profile:    "test",
+		Timeout:    30 * time.Second,
+		Retries:    0,
+		StartedAt:  time.Now(),
+		RequestID:  "test",
+	}
+
+	cmd := &cobra.Command{Use: "test"}
+	cmd.SetOut(&bytes.Buffer{})
+	cmd.SetErr(&bytes.Buffer{})
+	ctx := WithAppContext(context.Background(), app)
+	cmd.SetContext(ctx)
+
+	err := wrapped(cmd, nil)
+	if err == nil {
+		t.Error("expected error when getClient fails")
 	}
 }

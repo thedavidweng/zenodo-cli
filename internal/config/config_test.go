@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -247,5 +248,76 @@ func TestLoadNonexistentFile(t *testing.T) {
 	_, err := Load("/nonexistent/path/config.yaml")
 	if err == nil {
 		t.Error("expected error for missing file")
+	}
+}
+
+func TestSetProfileNilMap(t *testing.T) {
+	cfg := &Config{} // Profiles is nil
+
+	cfg.SetProfile("default", &Profile{Token: "tok", Sandbox: false})
+
+	if cfg.Profiles == nil {
+		t.Fatal("SetProfile should initialize nil Profiles map")
+	}
+	if cfg.Profiles["default"] == nil {
+		t.Fatal("expected profile to be set")
+	}
+	if cfg.Profiles["default"].Token != "tok" {
+		t.Errorf("token = %q, want tok", cfg.Profiles["default"].Token)
+	}
+}
+
+func TestLoadOrCreateInvalidYAML(t *testing.T) {
+	dir := tempDir(t)
+	path := filepath.Join(dir, "config.yaml")
+
+	// Write a file that exists but contains invalid YAML.
+	if err := os.WriteFile(path, []byte("  - :\n\tbad: [}"), 0600); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+
+	_, err := LoadOrCreate(path)
+	if err == nil {
+		t.Fatal("expected error for invalid YAML in LoadOrCreate")
+	}
+	// The error should NOT be ErrNotExist; it should be a parse/read error.
+	if errors.Is(err, os.ErrNotExist) {
+		t.Errorf("expected non-ErrNotExist error, got ErrNotExist")
+	}
+}
+
+func TestSaveMkdirAllFails(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("skipping unix path test on Windows")
+	}
+
+	cfg := &Config{Profiles: map[string]*Profile{}}
+	// /dev/null is a file, not a directory, so MkdirAll under it should fail.
+	err := Save("/dev/null/impossible/config.yaml", cfg)
+	if err == nil {
+		t.Fatal("expected error when MkdirAll fails")
+	}
+}
+
+func TestLoadNilProfilesInit(t *testing.T) {
+	dir := tempDir(t)
+	path := filepath.Join(dir, "config.yaml")
+
+	// Write YAML that is valid but has no "profiles" key, so Profiles will be nil after unmarshal.
+	yamlContent := `current_profile: default
+`
+	if err := os.WriteFile(path, []byte(yamlContent), 0600); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+
+	cfg, err := Load(path)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.Profiles == nil {
+		t.Fatal("Load should initialize nil Profiles to empty map")
+	}
+	if len(cfg.Profiles) != 0 {
+		t.Errorf("expected empty profiles map, got %d entries", len(cfg.Profiles))
 	}
 }
