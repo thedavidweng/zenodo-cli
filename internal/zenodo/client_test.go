@@ -1216,6 +1216,7 @@ func TestDoRawNotRetry4xx(t *testing.T) {
 // --- doRaw retry exhaustion on content upload ---
 
 func TestDoRawContentRetryExhaustion(t *testing.T) {
+	var contentAttempts atomic.Int32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/draft/files") {
 			// Init succeeds
@@ -1225,6 +1226,7 @@ func TestDoRawContentRetryExhaustion(t *testing.T) {
 			return
 		}
 		// Content upload always fails with 500
+		contentAttempts.Add(1)
 		w.WriteHeader(500)
 	}))
 	t.Cleanup(srv.Close)
@@ -1243,6 +1245,9 @@ func TestDoRawContentRetryExhaustion(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "upload content") {
 		t.Fatalf("error should mention upload content, got: %v", err)
+	}
+	if n := contentAttempts.Load(); n != 3 {
+		t.Fatalf("expected 3 content attempts (1 initial + 2 retries), got %d", n)
 	}
 }
 

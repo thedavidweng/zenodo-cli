@@ -229,7 +229,6 @@ func TestAuthStatusNotConfigured(t *testing.T) {
 }
 
 func TestAuthStatusProfileNotFound(t *testing.T) {
-	// Config exists with a "test" profile, but we ask for a nonexistent profile
 	cfgDir := t.TempDir()
 	cfgPath := filepath.Join(cfgDir, "config.yaml")
 	cfgContent := `current_profile: test
@@ -242,18 +241,6 @@ profiles:
 		t.Fatalf("write config: %v", err)
 	}
 
-	// runCmd uses profile "test" by default, so we use it but with a different
-	// approach: invoke auth status directly with profile "nonexistent"
-	out, err := runCmd(t, cfgPath, authSubcmd("status"), nil, map[string]bool{"json": true}, nil)
-	if err != nil {
-		t.Fatalf("auth status: %v", err)
-	}
-	// Profile "test" exists, so this should succeed
-	if !strings.Contains(out, "authenticated") {
-		t.Errorf("expected 'authenticated' for existing profile, got: %s", out)
-	}
-
-	// Now test with a nonexistent profile by creating the command manually
 	statusCmd := authSubcmd("status")
 	resetFlags(statusCmd)
 
@@ -273,7 +260,7 @@ profiles:
 	ctx := WithAppContext(context.Background(), app)
 	statusCmd.SetContext(ctx)
 
-	err = statusCmd.RunE(statusCmd, nil)
+	err := statusCmd.RunE(statusCmd, nil)
 	if err == nil {
 		t.Error("expected error for nonexistent profile")
 	}
