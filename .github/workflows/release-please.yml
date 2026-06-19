@@ -49,15 +49,15 @@ jobs:
           fi
           git tag "$TAG"
           git push origin "$TAG"
-          INSTALL='# Installation
+                    INSTALL="# Installation
 
           ```bash
           # Homebrew (macOS)
           brew install --cask thedavidweng/tap/zenodo-cli
 
           # Go (cross-platform)
-          go install github.com/thedavidweng/zenodo-cli/cmd/zenodo@TAG
-          ```'
+          go install github.com/thedavidweng/zenodo-cli/./cmd/zenodo@${TAG}
+          ```"
           FULL_NOTES="${NOTES:-Release $TAG}
 
           ${INSTALL}"
