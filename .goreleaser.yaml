@@ -29,7 +29,7 @@ checksum:
   algorithm: sha256
 
 release:
-  mode: keep-existing
+  mode: append
   github:
     owner: thedavidweng
     name: zenodo-cli
