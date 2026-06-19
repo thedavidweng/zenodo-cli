@@ -33,26 +33,6 @@ release:
   github:
     owner: thedavidweng
     name: zenodo-cli
-  header: |
-    ## What's Changed
-
-    See the [changelog](https://github.com/thedavidweng/zenodo-cli/blob/main/CHANGELOG.md) for full details.
-  footer: |
-    **Full Changelog**: https://github.com/thedavidweng/zenodo-cli/compare/{{ .PreviousTag }}...{{ .Tag }}
-
-    ---
-    ### Installation
-
-    **Homebrew (macOS/Linux):**
-    ```
-    brew tap thedavidweng/tap
-    brew install zenodo
-    ```
-
-    **Go:**
-    ```
-    go install github.com/thedavidweng/zenodo-cli/cmd/zenodo@{{ .Tag }}
-    ```
 
 signs:
   - artifacts: checksum
