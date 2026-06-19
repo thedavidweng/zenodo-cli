@@ -40,13 +40,13 @@ jobs:
           INSTALL=$(cat <<'EOF'
 # Installation
 
-\`\`\`bash
+```bash
 # Homebrew (macOS)
 brew install thedavidweng/tap/zenodo
 
 # Go (cross-platform)
 go install github.com/thedavidweng/zenodo-cli/cmd/zenodo@VERSION_PLACEHOLDER
-\`\`\`
+```
 EOF
           )
           INSTALL="${INSTALL/VERSION_PLACEHOLDER/$TAG}"
