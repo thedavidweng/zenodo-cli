@@ -42,7 +42,7 @@ jobs:
 
           ```bash
           # Homebrew (macOS)
-          brew install --cask thedavidweng/tap/zenodo
+          brew install thedavidweng/tap/zenodo
 
           # Go (cross-platform)
           go install github.com/thedavidweng/zenodo-cli/cmd/zenodo@VERSION_PLACEHOLDER
