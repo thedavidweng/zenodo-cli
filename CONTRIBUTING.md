@@ -5,6 +5,7 @@
 ```bash
 git clone https://github.com/thedavidweng/zenodo-cli.git
 cd zenodo-cli
+mise install  # install tools pinned in mise.toml
 go build ./cmd/zenodo
 go test ./...
 ```
