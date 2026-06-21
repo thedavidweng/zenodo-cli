@@ -14,10 +14,3 @@ build:
 
 lint: fmt vet test
 	golangci-lint run
-
-
-changelog:
-	git cliff -o CHANGELOG.md
-
-changelog-preview:
-	git cliff --latest
