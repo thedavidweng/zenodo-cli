@@ -25,7 +25,10 @@ jobs:
           token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
 
       - name: Create GitHub Release
-        if: ${{ steps.rp.outputs.release_created == 'true' }}
+        # release_created is still set to true with skip-github-release: true
+        # (the action creates the tag but skips the GitHub release API call).
+        # Also check tag_name as a guard against future behavior changes.
+        if: ${{ steps.rp.outputs.release_created == 'true' && steps.rp.outputs.tag_name != '' }}
         env:
           GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
           TAG: ${{ steps.rp.outputs.tag_name }}
