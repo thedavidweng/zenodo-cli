@@ -60,6 +60,7 @@ brews:
     license: "Apache-2.0"
     install: |
       bin.install "zenodo"
+      generate_completions_from_executable(bin/"zenodo", "completion")
     test: |
       system "#{bin}/zenodo", "version"
 
