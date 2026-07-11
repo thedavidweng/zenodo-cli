@@ -81,6 +81,48 @@ func withClient(command string, fn CmdFunc) func(cmd *cobra.Command, args []stri
 	}
 }
 
+// withPublicClient wraps a CmdFunc for commands that don't require any config
+// (e.g. search). It creates a client using the default base URL (or sandbox URL
+// if --sandbox is set) with no token. If a config/profile does exist, it uses
+// those settings for the base URL.
+func withPublicClient(command string, fn CmdFunc) func(cmd *cobra.Command, args []string) error {
+	return func(cmd *cobra.Command, args []string) error {
+		app := GetAppContext(cmd.Context())
+		r := newRenderer(app, cmd)
+		meta := metaInput(app, command)
+
+		baseURL := config.DefaultBaseURL
+		if app.Sandbox {
+			baseURL = config.DefaultSandboxBaseURL
+		}
+
+		// Try to load config for base_url/endpoint override, but don't fail if missing.
+		token := ""
+		cfgPath := resolveConfigPath(app.ConfigFile)
+		if cfg, err := config.Load(cfgPath); err == nil {
+			if profile := cfg.GetProfileOrNil(app.Profile); profile != nil {
+				creds := config.CredentialsFromProfileAndEnv(profile)
+				if creds.BaseURL != "" {
+					baseURL = creds.BaseURL
+				}
+				// Apply endpoint overrides from config (used for testing).
+				if profile.Endpoints.API != "" {
+					baseURL = profile.Endpoints.API
+				}
+				// Use token if available (public endpoints don't require it,
+				// but sending it is harmless and helps with test servers).
+				token = creds.Token
+			}
+		}
+
+		client := zenodo.NewClient(baseURL, token)
+		client.Retries = app.Retries
+		client.HTTPClient.Timeout = app.Timeout
+
+		return fn(&CmdContext{App: app, Cmd: cmd, Args: args, Client: client, R: r, Meta: meta})
+	}
+}
+
 // getClient creates a Zenodo client from the current app context and config.
 func getClient(app *AppContext) (*zenodo.Client, error) {
 	cfgPath := resolveConfigPath(app.ConfigFile)

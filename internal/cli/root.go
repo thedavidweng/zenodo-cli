@@ -115,21 +115,27 @@ func Execute() error {
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 
+	// doneCh signals the goroutine to exit when the command completes normally.
+	doneCh := make(chan struct{})
+
 	go func() {
 		<-sigCh
 		cancel()
 
+		// Wait for either a second signal (force exit) or normal completion.
 		select {
 		case <-sigCh:
 			fmt.Fprintf(os.Stderr, "\ninterrupted\n")
 			os.Exit(130)
-		case <-ctx.Done():
+		case <-doneCh:
 		}
 	}()
 
 	silenceAllCommands(rootCmd)
 	rootCmd.SetContext(ctx)
-	return rootCmd.Execute()
+	err := rootCmd.Execute()
+	close(doneCh)
+	return err
 }
 
 // silenceAllCommands recursively propagates SilenceUsage and SilenceErrors

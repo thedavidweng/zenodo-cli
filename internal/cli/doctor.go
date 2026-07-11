@@ -7,6 +7,7 @@ import (
 
 	"github.com/thedavidweng/zenodo-cli/internal/config"
 	"github.com/thedavidweng/zenodo-cli/internal/model"
+	"github.com/thedavidweng/zenodo-cli/internal/output"
 )
 
 // doctorCheck represents a single diagnostic check result.
@@ -40,7 +41,22 @@ Checks: config file exists, profile is configured, token is set, and API is reac
 		}
 
 		if app.JSON {
-			return r.Success(meta, map[string]any{"checks": checks}, nil)
+			if allOK {
+				return r.Success(meta, map[string]any{"checks": checks}, nil)
+			}
+			// Output the check results as a failure envelope with non-zero exit.
+			errBody := output.ErrorWithDetails(
+				model.ErrConfig,
+				"one or more doctor checks failed",
+				map[string]any{"checks": checks},
+			)
+			if err := r.Failure(meta, errBody); err != nil {
+				return err
+			}
+			return &model.CommandError{
+				Code:    model.ErrConfig,
+				Message: "one or more doctor checks failed",
+			}
 		}
 
 		for _, c := range checks {

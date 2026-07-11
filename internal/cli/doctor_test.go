@@ -94,8 +94,10 @@ func TestDoctorJSONOutput(t *testing.T) {
 	}))
 
 	err := doctorCmd.RunE(cmd, nil)
-	if err != nil {
-		t.Fatalf("RunE: %v", err)
+	// Checks fail (nonexistent config), so RunE should return an error
+	// for non-zero exit code, but JSON output should still be valid.
+	if err == nil {
+		t.Fatal("expected error when checks fail in JSON mode")
 	}
 
 	var result map[string]any
@@ -104,6 +106,9 @@ func TestDoctorJSONOutput(t *testing.T) {
 	}
 	if _, ok := result["ok"]; !ok {
 		t.Error("JSON should have 'ok' field")
+	}
+	if ok, _ := result["ok"].(bool); ok {
+		t.Error("ok should be false when checks fail")
 	}
 }
 

@@ -16,7 +16,7 @@ This command does not require authentication.`,
 	Example: `  zenodo search "machine learning"
   zenodo search "climate" --json`,
 	Args: cobra.ExactArgs(1),
-	RunE: withClient("search", func(ctx *CmdContext) error {
+	RunE: withPublicClient("search", func(ctx *CmdContext) error {
 		query := ctx.Args[0]
 		resp, err := ctx.Client.SearchRecords(ctx.Cmd.Context(), query)
 		if err != nil {
