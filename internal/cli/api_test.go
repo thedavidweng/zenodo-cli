@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"bytes"
 	"context"
 	"strings"
 	"testing"
@@ -265,5 +266,42 @@ func TestApiReadOnlyBlocksPut(t *testing.T) {
 	_, err := runCmd(t, cfgPath, apiSubcmd("put"), []string{"/api/records/1/draft"}, map[string]bool{"confirm": true, "read-only": true}, nil)
 	if err == nil {
 		t.Error("expected error in read-only mode")
+	}
+}
+
+func TestEnsurePath(t *testing.T) {
+	tests := []struct {
+		input, want string
+	}{
+		{"records/123", "/records/123"},
+		{"/records/123", "/records/123"},
+		{"", "/"},
+	}
+	for _, tc := range tests {
+		if got := ensurePath(tc.input); got != tc.want {
+			t.Errorf("ensurePath(%q) = %q, want %q", tc.input, got, tc.want)
+		}
+	}
+}
+
+func TestPrintJSON(t *testing.T) {
+	var out bytes.Buffer
+	cmd := &cobra.Command{}
+	cmd.SetOut(&out)
+	app := &AppContext{}
+	r := newRenderer(app, cmd)
+	meta := metaInput(app, "test")
+	ctx := &CmdContext{App: app, Cmd: cmd, R: r, Meta: meta}
+
+	err := printJSON(ctx, map[string]any{"key": "value"})
+	if err != nil {
+		t.Fatalf("printJSON: %v", err)
+	}
+	output := out.String()
+	if !strings.Contains(output, `"key"`) || !strings.Contains(output, `"value"`) {
+		t.Errorf("output should contain key/value JSON, got: %s", output)
+	}
+	if !strings.HasSuffix(output, "\n") {
+		t.Error("output should end with newline")
 	}
 }

@@ -34,8 +34,8 @@ func NewClient(baseURL, token string) *Client {
 	}
 }
 
-// ensureLeadingSlash ensures path starts with "/".
-func ensureLeadingSlash(path string) string {
+// EnsureLeadingSlash ensures the given path starts with "/".
+func EnsureLeadingSlash(path string) string {
 	if path == "" || path[0] != '/' {
 		return "/" + path
 	}
@@ -306,7 +306,7 @@ func (c *Client) downloadFile(ctx context.Context, id, destdir, key string) erro
 // Do sends an HTTP request with JSON body and decodes JSON response into result.
 // This is the public wrapper used by the api command.
 func (c *Client) Do(ctx context.Context, method, path string, body any, result any) error {
-	return c.do(ctx, method, ensureLeadingSlash(path), body, result)
+	return c.do(ctx, method, EnsureLeadingSlash(path), body, result)
 }
 
 // do sends an HTTP request with JSON body and decodes JSON response into result.
