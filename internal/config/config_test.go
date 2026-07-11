@@ -229,6 +229,31 @@ func TestGetProfile(t *testing.T) {
 	}
 }
 
+func TestGetProfileOrNil(t *testing.T) {
+	cfg := &Config{
+		CurrentProfile: "default",
+		Profiles: map[string]*Profile{
+			"default": {Token: "abc"},
+			"sb":      {Token: "xyz"},
+		},
+	}
+
+	// Named profile.
+	if p := cfg.GetProfileOrNil("sb"); p == nil || p.Token != "xyz" {
+		t.Errorf("GetProfileOrNil(sb) = %v, want token xyz", p)
+	}
+
+	// Empty name uses current profile.
+	if p := cfg.GetProfileOrNil(""); p == nil || p.Token != "abc" {
+		t.Errorf("GetProfileOrNil(\"\") = %v, want token abc", p)
+	}
+
+	// Missing profile returns nil.
+	if p := cfg.GetProfileOrNil("nonexistent"); p != nil {
+		t.Errorf("GetProfileOrNil(nonexistent) = %v, want nil", p)
+	}
+}
+
 func TestSetProfile(t *testing.T) {
 	cfg := &Config{Profiles: map[string]*Profile{}}
 

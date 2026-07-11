@@ -50,13 +50,7 @@ Checks: config file exists, profile is configured, token is set, and API is reac
 				"one or more doctor checks failed",
 				map[string]any{"checks": checks},
 			)
-			if err := r.Failure(meta, errBody); err != nil {
-				return err
-			}
-			return &model.CommandError{
-				Code:    model.ErrConfig,
-				Message: "one or more doctor checks failed",
-			}
+			return r.Failure(meta, errBody)
 		}
 
 		for _, c := range checks {
