@@ -70,8 +70,8 @@ func TestDoctorHumanOutput(t *testing.T) {
 	}))
 
 	err := doctorCmd.RunE(cmd, nil)
-	if err != nil {
-		t.Fatalf("RunE: %v", err)
+	if err == nil {
+		t.Fatal("expected error when checks fail")
 	}
 
 	output := out.String()
@@ -286,8 +286,8 @@ profiles:
 	}))
 
 	err := doctorCmd.RunE(cmd, nil)
-	if err != nil {
-		t.Fatalf("RunE: %v", err)
+	if err == nil {
+		t.Fatal("expected error when some checks fail")
 	}
 
 	output := out.String()

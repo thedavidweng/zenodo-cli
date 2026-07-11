@@ -114,7 +114,7 @@ func TestRequireReadOnlyWithFlag(t *testing.T) {
 	meta := output.RuntimeMetaInput{Command: "test"}
 	app := &AppContext{ReadOnly: true}
 
-	err := requireReadOnly(&r, meta, app)
+	err := enforceReadOnly(&r, meta, app)
 	if err == nil {
 		t.Error("expected error when read-only is set")
 	}
@@ -126,7 +126,7 @@ func TestRequireReadOnlyWithoutFlag(t *testing.T) {
 	meta := output.RuntimeMetaInput{Command: "test"}
 	app := &AppContext{ReadOnly: false}
 
-	err := requireReadOnly(&r, meta, app)
+	err := enforceReadOnly(&r, meta, app)
 	if err != nil {
 		t.Errorf("expected no error when read-only is not set, got: %v", err)
 	}

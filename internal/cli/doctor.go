@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/thedavidweng/zenodo-cli/internal/config"
+	"github.com/thedavidweng/zenodo-cli/internal/model"
 )
 
 // doctorCheck represents a single diagnostic check result.
@@ -30,16 +31,22 @@ Checks: config file exists, profile is configured, token is set, and API is reac
 
 		checks := doctorRun(cmd.Context(), app)
 
+		allOK := true
+		for _, c := range checks {
+			if !c.OK {
+				allOK = false
+				break
+			}
+		}
+
 		if app.JSON {
 			return r.Success(meta, map[string]any{"checks": checks}, nil)
 		}
 
-		allOK := true
 		for _, c := range checks {
 			status := "PASS"
 			if !c.OK {
 				status = "FAIL"
-				allOK = false
 			}
 			if c.Message != "" {
 				r.Human("[%s] %s: %s\n", status, c.Name, c.Message)
@@ -49,10 +56,13 @@ Checks: config file exists, profile is configured, token is set, and API is reac
 		}
 		if allOK {
 			r.Human("\nAll checks passed.\n")
-		} else {
-			r.Human("\nSome checks failed.\n")
+			return nil
 		}
-		return nil
+		r.Human("\nSome checks failed.\n")
+		return &model.CommandError{
+			Code:    model.ErrConfig,
+			Message: "one or more doctor checks failed",
+		}
 	},
 }
 
@@ -61,10 +71,7 @@ func doctorRun(ctx context.Context, app *AppContext) []doctorCheck {
 	var checks []doctorCheck
 
 	// 1. Load config file
-	cfgPath := app.ConfigFile
-	if cfgPath == "" {
-		cfgPath = config.DefaultConfigPath()
-	}
+	cfgPath := resolveConfigPath(app.ConfigFile)
 	cfg, err := config.Load(cfgPath)
 	if err != nil {
 		checks = append(checks, doctorCheck{

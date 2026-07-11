@@ -1,7 +1,7 @@
 package cli
 
 import (
-	"fmt"
+	"encoding/json"
 
 	"github.com/spf13/cobra"
 
@@ -26,10 +26,7 @@ var apiGetCmd = &cobra.Command{
   zenodo api get /api/user/records --json`,
 	Args: cobra.ExactArgs(1),
 	RunE: withAuth("api.get", func(ctx *CmdContext) error {
-		path := ctx.Args[0]
-		if path[0] != '/' {
-			path = "/" + path
-		}
+		path := ensurePath(ctx.Args[0])
 
 		var result any
 		err := ctx.Client.Do(ctx.Cmd.Context(), "GET", path, nil, &result)
@@ -40,8 +37,7 @@ var apiGetCmd = &cobra.Command{
 		if ctx.App.JSON {
 			return ctx.R.Success(ctx.Meta, result, nil)
 		}
-		_, err = fmt.Fprintf(ctx.Cmd.OutOrStdout(), "%v\n", result)
-		return err
+		return printJSON(ctx, result)
 	}),
 }
 
@@ -55,16 +51,13 @@ Use --data to provide the JSON request body. Without --data, sends an empty body
   zenodo api post /api/records/12345/draft/actions/publish --confirm`,
 	Args: cobra.ExactArgs(1),
 	RunE: withAuth("api.post", func(ctx *CmdContext) error {
-		if err := requireReadOnly(&ctx.R, ctx.Meta, ctx.App); err != nil {
+		if err := enforceReadOnly(&ctx.R, ctx.Meta, ctx.App); err != nil {
 			return err
 		}
 		if err := requireConfirm(&ctx.R, ctx.Meta, ctx.App); err != nil {
 			return err
 		}
-		path := ctx.Args[0]
-		if path[0] != '/' {
-			path = "/" + path
-		}
+		path := ensurePath(ctx.Args[0])
 
 		data, _ := ctx.Cmd.Flags().GetString("data")
 
@@ -96,8 +89,7 @@ Use --data to provide the JSON request body. Without --data, sends an empty body
 		if ctx.App.JSON {
 			return ctx.R.Success(ctx.Meta, result, nil)
 		}
-		_, err = fmt.Fprintf(ctx.Cmd.OutOrStdout(), "%v\n", result)
-		return err
+		return printJSON(ctx, result)
 	}),
 }
 
@@ -111,16 +103,13 @@ Use --data to provide the JSON request body. Without --data, sends an empty body
   zenodo api put /api/records/12345/draft --data @meta.json --confirm`,
 	Args: cobra.ExactArgs(1),
 	RunE: withAuth("api.put", func(ctx *CmdContext) error {
-		if err := requireReadOnly(&ctx.R, ctx.Meta, ctx.App); err != nil {
+		if err := enforceReadOnly(&ctx.R, ctx.Meta, ctx.App); err != nil {
 			return err
 		}
 		if err := requireConfirm(&ctx.R, ctx.Meta, ctx.App); err != nil {
 			return err
 		}
-		path := ctx.Args[0]
-		if path[0] != '/' {
-			path = "/" + path
-		}
+		path := ensurePath(ctx.Args[0])
 
 		data, _ := ctx.Cmd.Flags().GetString("data")
 
@@ -152,9 +141,26 @@ Use --data to provide the JSON request body. Without --data, sends an empty body
 		if ctx.App.JSON {
 			return ctx.R.Success(ctx.Meta, result, nil)
 		}
-		_, err = fmt.Fprintf(ctx.Cmd.OutOrStdout(), "%v\n", result)
-		return err
+		return printJSON(ctx, result)
 	}),
+}
+
+// ensurePath ensures the given path starts with "/".
+func ensurePath(path string) string {
+	if path == "" || path[0] != '/' {
+		return "/" + path
+	}
+	return path
+}
+
+// printJSON writes a value as indented JSON to the command's stdout.
+func printJSON(ctx *CmdContext, v any) error {
+	b, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		return err
+	}
+	_, err = ctx.Cmd.OutOrStdout().Write(append(b, '\n'))
+	return err
 }
 
 func init() {

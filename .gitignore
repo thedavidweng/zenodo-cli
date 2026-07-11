@@ -4,3 +4,4 @@ dist/
 /zenodo
 .claude/
 .env
+internal/.DS_Store

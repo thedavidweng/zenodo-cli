@@ -106,6 +106,8 @@ func registerFlags(root *cobra.Command) {
 }
 
 // Execute runs the root command with signal handling.
+// The first SIGINT/SIGTERM cancels the context for graceful shutdown.
+// A second signal forces immediate exit with code 130.
 func Execute() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -114,14 +116,15 @@ func Execute() error {
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
-		sig := <-sigCh
-		_ = sig
+		<-sigCh
 		cancel()
 
-		sig = <-sigCh
-		_ = sig
-		fmt.Fprintf(os.Stderr, "\ninterrupted\n")
-		os.Exit(130)
+		select {
+		case <-sigCh:
+			fmt.Fprintf(os.Stderr, "\ninterrupted\n")
+			os.Exit(130)
+		case <-ctx.Done():
+		}
 	}()
 
 	silenceAllCommands(rootCmd)
