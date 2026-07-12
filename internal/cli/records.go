@@ -51,7 +51,7 @@ use "records publish" to make it public.`,
   zenodo records create --metadata meta.json
   zenodo records create --title "Test" --dry-run`,
 	RunE: withAuth("records.create", func(ctx *CmdContext) error {
-		if err := requireReadOnly(&ctx.R, ctx.Meta, ctx.App); err != nil {
+		if err := enforceReadOnly(&ctx.R, ctx.Meta, ctx.App); err != nil {
 			return err
 		}
 		if ctx.App.DryRun {
@@ -140,7 +140,7 @@ Requires --confirm because this operation is irreversible.`,
 	Example: "  zenodo records delete 12345 --confirm",
 	Args:    cobra.ExactArgs(1),
 	RunE: withAuth("records.delete", func(ctx *CmdContext) error {
-		if err := requireReadOnly(&ctx.R, ctx.Meta, ctx.App); err != nil {
+		if err := enforceReadOnly(&ctx.R, ctx.Meta, ctx.App); err != nil {
 			return err
 		}
 		if err := requireConfirm(&ctx.R, ctx.Meta, ctx.App); err != nil {
@@ -171,7 +171,7 @@ This is irreversible. Once published, a record cannot be unpublished or deleted.
 	Example: "  zenodo records publish 12345 --confirm",
 	Args:    cobra.ExactArgs(1),
 	RunE: withAuth("records.publish", func(ctx *CmdContext) error {
-		if err := requireReadOnly(&ctx.R, ctx.Meta, ctx.App); err != nil {
+		if err := enforceReadOnly(&ctx.R, ctx.Meta, ctx.App); err != nil {
 			return err
 		}
 		if err := requireConfirm(&ctx.R, ctx.Meta, ctx.App); err != nil {
@@ -204,7 +204,7 @@ modify it and publish it as a new version.`,
 	Example: "  zenodo records new-version 12345",
 	Args:    cobra.ExactArgs(1),
 	RunE: withAuth("records.new-version", func(ctx *CmdContext) error {
-		if err := requireReadOnly(&ctx.R, ctx.Meta, ctx.App); err != nil {
+		if err := enforceReadOnly(&ctx.R, ctx.Meta, ctx.App); err != nil {
 			return err
 		}
 		id := ctx.Args[0]
@@ -257,7 +257,7 @@ The reserved DOI can be cited immediately, even before the record is published.`
 	Example: "  zenodo records reserve-doi 12345",
 	Args:    cobra.ExactArgs(1),
 	RunE: withAuth("records.reserve-doi", func(ctx *CmdContext) error {
-		if err := requireReadOnly(&ctx.R, ctx.Meta, ctx.App); err != nil {
+		if err := enforceReadOnly(&ctx.R, ctx.Meta, ctx.App); err != nil {
 			return err
 		}
 		id := ctx.Args[0]
@@ -287,7 +287,7 @@ Use --community to specify the community identifier.`,
   zenodo records submit 12345 --community my-community --confirm`,
 	Args: cobra.ExactArgs(1),
 	RunE: withAuth("records.submit", func(ctx *CmdContext) error {
-		if err := requireReadOnly(&ctx.R, ctx.Meta, ctx.App); err != nil {
+		if err := enforceReadOnly(&ctx.R, ctx.Meta, ctx.App); err != nil {
 			return err
 		}
 		community, _ := ctx.Cmd.Flags().GetString("community")

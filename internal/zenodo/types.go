@@ -3,6 +3,7 @@ package zenodo
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 )
 
 // Record represents a Zenodo InvenioRDM record.
@@ -35,7 +36,7 @@ func (r *Record) UnmarshalJSON(data []byte) error {
 	case string:
 		r.ID = v
 	case float64:
-		r.ID = fmt.Sprintf("%.0f", v)
+		r.ID = strconv.FormatInt(int64(v), 10)
 	default:
 		r.ID = fmt.Sprintf("%v", v)
 	}

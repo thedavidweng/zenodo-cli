@@ -48,11 +48,11 @@ func Errorf(code, format string, args ...any) model.ErrorBody {
 	}
 }
 
-// ErrorWithDetails creates an ErrorBody with the given code, formatted message, and details.
-func ErrorWithDetails(code, format string, details map[string]any, args ...any) model.ErrorBody {
+// ErrorWithDetails creates an ErrorBody with the given code, message, and details.
+func ErrorWithDetails(code, message string, details map[string]any) model.ErrorBody {
 	return model.ErrorBody{
 		Code:      code,
-		Message:   fmt.Sprintf(format, args...),
+		Message:   message,
 		Category:  CategoryForCode(code),
 		Retryable: retryableCodes[code],
 		Details:   details,

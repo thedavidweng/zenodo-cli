@@ -6,8 +6,8 @@ import (
 )
 
 const (
-	defaultBaseURL        = "https://zenodo.org"
-	defaultSandboxBaseURL = "https://sandbox.zenodo.org"
+	DefaultBaseURL        = "https://zenodo.org"
+	DefaultSandboxBaseURL = "https://sandbox.zenodo.org"
 )
 
 // Credentials is the resolved authentication + endpoint info for a request.
@@ -38,9 +38,9 @@ func CredentialsFromProfileAndEnv(p *Profile) Credentials {
 
 	if c.BaseURL == "" {
 		if c.Sandbox {
-			c.BaseURL = defaultSandboxBaseURL
+			c.BaseURL = DefaultSandboxBaseURL
 		} else {
-			c.BaseURL = defaultBaseURL
+			c.BaseURL = DefaultBaseURL
 		}
 	}
 

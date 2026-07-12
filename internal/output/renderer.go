@@ -120,7 +120,10 @@ func (r *Renderer) writeJSON(env model.Envelope) error {
 			},
 		}
 	case r.Compact:
-		raw = marshalCompact(env)
+		if len(env.Meta.Warnings) == 0 {
+			env.Meta.Warnings = nil
+		}
+		raw = env
 	default:
 		raw = env
 	}
@@ -135,17 +138,6 @@ func (r *Renderer) writeJSON(env model.Envelope) error {
 	if err != nil {
 		return err
 	}
-	_, err = fmt.Fprintln(r.Out, string(b))
+	_, err = r.Out.Write(append(b, '\n'))
 	return err
-}
-
-// marshalCompact removes zero-value fields from the envelope for compact output.
-func marshalCompact(env model.Envelope) model.Envelope {
-	if len(env.Meta.Warnings) == 0 {
-		env.Meta.Warnings = nil
-	}
-	if env.Error != nil && env.Error.Details == nil {
-		env.Error.Details = nil
-	}
-	return env
 }

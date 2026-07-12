@@ -66,12 +66,66 @@ func withAuth(command string, fn CmdFunc) func(cmd *cobra.Command, args []string
 	}
 }
 
+// withClient wraps a CmdFunc: loads config and creates client without requiring auth.
+func withClient(command string, fn CmdFunc) func(cmd *cobra.Command, args []string) error {
+	return func(cmd *cobra.Command, args []string) error {
+		app := GetAppContext(cmd.Context())
+		r := newRenderer(app, cmd)
+		meta := metaInput(app, command)
+
+		client, err := getClient(app)
+		if err != nil {
+			return r.Failure(meta, output.Errorf(model.ErrConfig, "%v", err))
+		}
+		return fn(&CmdContext{App: app, Cmd: cmd, Args: args, Client: client, R: r, Meta: meta})
+	}
+}
+
+// withPublicClient wraps a CmdFunc for commands that don't require any config
+// (e.g. search). It creates a client using the default base URL (or sandbox URL
+// if --sandbox is set) with no token. If a config/profile does exist, it uses
+// those settings for the base URL.
+func withPublicClient(command string, fn CmdFunc) func(cmd *cobra.Command, args []string) error {
+	return func(cmd *cobra.Command, args []string) error {
+		app := GetAppContext(cmd.Context())
+		r := newRenderer(app, cmd)
+		meta := metaInput(app, command)
+
+		baseURL := config.DefaultBaseURL
+		if app.Sandbox {
+			baseURL = config.DefaultSandboxBaseURL
+		}
+
+		// Try to load config for base_url/endpoint override, but don't fail if missing.
+		token := ""
+		cfgPath := resolveConfigPath(app.ConfigFile)
+		if cfg, err := config.Load(cfgPath); err == nil {
+			if profile := cfg.GetProfileOrNil(app.Profile); profile != nil {
+				creds := config.CredentialsFromProfileAndEnv(profile)
+				if creds.BaseURL != "" {
+					baseURL = creds.BaseURL
+				}
+				// Apply endpoint overrides from config (used for testing).
+				if profile.Endpoints.API != "" {
+					baseURL = profile.Endpoints.API
+				}
+				// Use token if available (public endpoints don't require it,
+				// but sending it is harmless and helps with test servers).
+				token = creds.Token
+			}
+		}
+
+		client := zenodo.NewClient(baseURL, token)
+		client.Retries = app.Retries
+		client.HTTPClient.Timeout = app.Timeout
+
+		return fn(&CmdContext{App: app, Cmd: cmd, Args: args, Client: client, R: r, Meta: meta})
+	}
+}
+
 // getClient creates a Zenodo client from the current app context and config.
 func getClient(app *AppContext) (*zenodo.Client, error) {
-	cfgPath := app.ConfigFile
-	if cfgPath == "" {
-		cfgPath = config.DefaultConfigPath()
-	}
+	cfgPath := resolveConfigPath(app.ConfigFile)
 	cfg, err := config.Load(cfgPath)
 	if err != nil {
 		return nil, fmt.Errorf("not configured. Run 'zenodo auth login' to get started")
@@ -86,8 +140,8 @@ func getClient(app *AppContext) (*zenodo.Client, error) {
 	// CLI --sandbox flag overrides profile setting
 	if app.Sandbox {
 		creds.Sandbox = true
-		if creds.BaseURL == "https://zenodo.org" {
-			creds.BaseURL = "https://sandbox.zenodo.org"
+		if creds.BaseURL == config.DefaultBaseURL {
+			creds.BaseURL = config.DefaultSandboxBaseURL
 		}
 	}
 	client := zenodo.NewClient(creds.BaseURL, creds.Token)
@@ -106,7 +160,7 @@ func getClient(app *AppContext) (*zenodo.Client, error) {
 func requireAuth(r *output.Renderer, meta output.RuntimeMetaInput, client *zenodo.Client) error {
 	if client.Token == "" {
 		return r.Failure(meta, output.ErrorWithDetails(
-			"AUTH_REQUIRED",
+			model.ErrAuthRequired,
 			"Authentication required. Run 'zenodo auth login' to authenticate.",
 			map[string]any{"profile": meta.Profile},
 		))
@@ -117,13 +171,13 @@ func requireAuth(r *output.Renderer, meta output.RuntimeMetaInput, client *zenod
 // requireConfirm checks that --confirm was passed for destructive operations.
 func requireConfirm(r *output.Renderer, meta output.RuntimeMetaInput, app *AppContext) error {
 	if !app.Confirm {
-		return r.Failure(meta, output.Errorf("CONFIRMATION_REQUIRED", "use --confirm to proceed"))
+		return r.Failure(meta, output.Errorf(model.ErrConfirmationRequired, "use --confirm to proceed"))
 	}
 	return nil
 }
 
-// requireReadOnly blocks mutations when --read-only is set.
-func requireReadOnly(r *output.Renderer, meta output.RuntimeMetaInput, app *AppContext) error {
+// enforceReadOnly blocks mutations when --read-only is set.
+func enforceReadOnly(r *output.Renderer, meta output.RuntimeMetaInput, app *AppContext) error {
 	if app.ReadOnly {
 		return r.Failure(meta, output.Errorf(model.ErrReadOnlyViolation, "--read-only blocks this mutation"))
 	}
@@ -133,4 +187,13 @@ func requireReadOnly(r *output.Renderer, meta output.RuntimeMetaInput, app *AppC
 // parseJSON parses a JSON string into the target value.
 func parseJSON(s string, v any) error {
 	return json.Unmarshal([]byte(s), v)
+}
+
+// resolveConfigPath returns the config file path to use: the explicit override
+// if set, otherwise the platform default.
+func resolveConfigPath(explicit string) string {
+	if explicit != "" {
+		return explicit
+	}
+	return config.DefaultConfigPath()
 }

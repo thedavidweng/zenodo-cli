@@ -70,8 +70,8 @@ func TestDoctorHumanOutput(t *testing.T) {
 	}))
 
 	err := doctorCmd.RunE(cmd, nil)
-	if err != nil {
-		t.Fatalf("RunE: %v", err)
+	if err == nil {
+		t.Fatal("expected error when checks fail")
 	}
 
 	output := out.String()
@@ -94,8 +94,10 @@ func TestDoctorJSONOutput(t *testing.T) {
 	}))
 
 	err := doctorCmd.RunE(cmd, nil)
-	if err != nil {
-		t.Fatalf("RunE: %v", err)
+	// Checks fail (nonexistent config), so RunE should return an error
+	// for non-zero exit code, but JSON output should still be valid.
+	if err == nil {
+		t.Fatal("expected error when checks fail in JSON mode")
 	}
 
 	var result map[string]any
@@ -104,6 +106,9 @@ func TestDoctorJSONOutput(t *testing.T) {
 	}
 	if _, ok := result["ok"]; !ok {
 		t.Error("JSON should have 'ok' field")
+	}
+	if ok, _ := result["ok"].(bool); ok {
+		t.Error("ok should be false when checks fail")
 	}
 }
 
@@ -207,6 +212,51 @@ profiles:
 	}
 }
 
+func TestDoctorJSONAllPass(t *testing.T) {
+	token := "doctor-json-pass-token"
+	fz := testutil.NewFakeZenodo(token)
+	defer fz.Close()
+
+	cfgDir := t.TempDir()
+	cfgPath := filepath.Join(cfgDir, "config.yaml")
+	cfgContent := fmt.Sprintf(`current_profile: test
+profiles:
+  test:
+    token: %s
+    base_url: https://zenodo.org
+    endpoints:
+      api: %s
+`, token, fz.URL())
+	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0600); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	var out bytes.Buffer
+	cmd := &cobra.Command{}
+	cmd.SetOut(&out)
+	cmd.SetErr(&bytes.Buffer{})
+	cmd.SetContext(WithAppContext(t.Context(), &AppContext{
+		ConfigFile: cfgPath,
+		Profile:    "test",
+		JSON:       true,
+		StartedAt:  __testNow(),
+		RequestID:  "test",
+	}))
+
+	err := doctorCmd.RunE(cmd, nil)
+	if err != nil {
+		t.Fatalf("RunE: %v", err)
+	}
+
+	var result map[string]any
+	if err := json.Unmarshal(out.Bytes(), &result); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if ok, _ := result["ok"].(bool); !ok {
+		t.Error("ok should be true when all checks pass")
+	}
+}
+
 func TestDoctorRunAPIFail(t *testing.T) {
 	// Server that returns 500 for all requests
 	failServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -286,8 +336,8 @@ profiles:
 	}))
 
 	err := doctorCmd.RunE(cmd, nil)
-	if err != nil {
-		t.Fatalf("RunE: %v", err)
+	if err == nil {
+		t.Fatal("expected error when some checks fail")
 	}
 
 	output := out.String()

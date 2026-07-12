@@ -1415,3 +1415,128 @@ func TestUploadFileNonexistentFile(t *testing.T) {
 		t.Fatalf("error should mention read file, got: %v", err)
 	}
 }
+
+// --- UploadFile: directory as file ---
+
+func TestUploadFileDirectoryAsFile(t *testing.T) {
+	_, client := newClientAndServer(t)
+	tmpDir := t.TempDir()
+
+	err := client.UploadFile(context.Background(), "1", tmpDir)
+	if err == nil {
+		t.Fatal("expected error for directory path")
+	}
+	if !strings.Contains(err.Error(), "is a directory") {
+		t.Fatalf("error should mention is a directory, got: %v", err)
+	}
+}
+
+// --- ensureLeadingSlash ---
+
+func TestEnsureLeadingSlash(t *testing.T) {
+	tests := []struct {
+		input, want string
+	}{
+		{"records/123", "/records/123"},
+		{"/records/123", "/records/123"},
+		{"", "/"},
+	}
+	for _, tc := range tests {
+		if got := zenodo.EnsureLeadingSlash(tc.input); got != tc.want {
+			t.Errorf("EnsureLeadingSlash(%q) = %q, want %q", tc.input, got, tc.want)
+		}
+	}
+}
+
+// --- Do: path without leading slash gets normalized ---
+
+func TestDoNormalizesPath(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/records" {
+			t.Errorf("path = %q, want /api/records", r.URL.Path)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(200)
+		_, _ = fmt.Fprint(w, `{"id":"1"}`)
+	}))
+	t.Cleanup(srv.Close)
+
+	client := zenodo.NewClient(srv.URL, "tok")
+	client.Retries = 0
+
+	var result map[string]any
+	err := client.Do(context.Background(), "GET", "api/records", nil, &result)
+	if err != nil {
+		t.Fatalf("Do: %v", err)
+	}
+}
+
+// --- doStreaming: 4xx error does not retry ---
+
+func TestDoStreaming4xxNoRetry(t *testing.T) {
+	var contentAttempts atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/draft/files") {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(200)
+			_, _ = fmt.Fprint(w, `{}`)
+			return
+		}
+		contentAttempts.Add(1)
+		w.WriteHeader(403)
+	}))
+	t.Cleanup(srv.Close)
+
+	client := zenodo.NewClient(srv.URL, "tok")
+	client.Retries = 2
+	client.RequestInterval = 1 * time.Millisecond
+
+	tmpDir := t.TempDir()
+	tmpFile := filepath.Join(tmpDir, "4xx.txt")
+	_ = os.WriteFile(tmpFile, []byte("data"), 0644)
+
+	err := client.UploadFile(context.Background(), "1", tmpFile)
+	if err == nil {
+		t.Fatal("expected error for 4xx")
+	}
+	if n := contentAttempts.Load(); n != 1 {
+		t.Fatalf("expected 1 content attempt (no retry for 4xx), got %d", n)
+	}
+}
+
+// --- downloadFile: cleanup on copy error ---
+
+func TestDownloadFileCleanupOnError(t *testing.T) {
+	// Server sends a record with a file, then sends partial content for download
+	// to trigger an io.Copy error.
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.Contains(r.URL.Path, "/files/") {
+			// Download endpoint: send Content-Length but close connection early
+			w.Header().Set("Content-Length", "1000")
+			w.WriteHeader(200)
+			_, _ = w.Write([]byte("partial"))
+			// Hijack and close to cause a short read
+			if hj, ok := w.(http.Hijacker); ok {
+				conn, _, _ := hj.Hijack()
+				_ = conn.Close()
+			}
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(200)
+		_, _ = fmt.Fprint(w, `{"id":"1","status":"published","metadata":{"title":"t"},"files":[{"key":"f.txt","size":1000}]}`)
+	}))
+	t.Cleanup(srv.Close)
+
+	client := zenodo.NewClient(srv.URL, "tok")
+	client.Retries = 0
+
+	tmpDir := t.TempDir()
+	_ = client.DownloadRecord(context.Background(), "1", tmpDir)
+
+	// The partial file should have been cleaned up.
+	destPath := filepath.Join(tmpDir, "f.txt")
+	if _, err := os.Stat(destPath); err == nil {
+		t.Error("partial file should have been removed on error")
+	}
+}

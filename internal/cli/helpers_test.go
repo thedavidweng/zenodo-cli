@@ -114,7 +114,7 @@ func TestRequireReadOnlyWithFlag(t *testing.T) {
 	meta := output.RuntimeMetaInput{Command: "test"}
 	app := &AppContext{ReadOnly: true}
 
-	err := requireReadOnly(&r, meta, app)
+	err := enforceReadOnly(&r, meta, app)
 	if err == nil {
 		t.Error("expected error when read-only is set")
 	}
@@ -126,7 +126,7 @@ func TestRequireReadOnlyWithoutFlag(t *testing.T) {
 	meta := output.RuntimeMetaInput{Command: "test"}
 	app := &AppContext{ReadOnly: false}
 
-	err := requireReadOnly(&r, meta, app)
+	err := enforceReadOnly(&r, meta, app)
 	if err != nil {
 		t.Errorf("expected no error when read-only is not set, got: %v", err)
 	}
@@ -284,5 +284,46 @@ func TestWithAuthGetClientError(t *testing.T) {
 	err := wrapped(cmd, nil)
 	if err == nil {
 		t.Error("expected error when getClient fails")
+	}
+}
+
+func TestWithClientGetClientError(t *testing.T) {
+	wrapped := withClient("test.command", func(ctx *CmdContext) error {
+		t.Error("handler should not be called")
+		return nil
+	})
+
+	app := &AppContext{
+		ConfigFile: "/nonexistent/config.yaml",
+		Profile:    "test",
+		Timeout:    30 * time.Second,
+		Retries:    0,
+		StartedAt:  time.Now(),
+		RequestID:  "test",
+	}
+
+	cmd := &cobra.Command{Use: "test"}
+	cmd.SetOut(&bytes.Buffer{})
+	cmd.SetErr(&bytes.Buffer{})
+	ctx := WithAppContext(context.Background(), app)
+	cmd.SetContext(ctx)
+
+	err := wrapped(cmd, nil)
+	if err == nil {
+		t.Error("expected error when getClient fails")
+	}
+}
+
+func TestResolveConfigPathExplicit(t *testing.T) {
+	got := resolveConfigPath("/custom/path/config.yaml")
+	if got != "/custom/path/config.yaml" {
+		t.Errorf("resolveConfigPath = %q, want /custom/path/config.yaml", got)
+	}
+}
+
+func TestResolveConfigPathDefault(t *testing.T) {
+	got := resolveConfigPath("")
+	if got == "" {
+		t.Error("resolveConfigPath should return non-empty default path")
 	}
 }

@@ -113,6 +113,15 @@ func (c *Config) GetProfile(name string) (*Profile, error) {
 	return p, nil
 }
 
+// GetProfileOrNil returns the named profile or nil if not found.
+// Unlike GetProfile, it does not return an error.
+func (c *Config) GetProfileOrNil(name string) *Profile {
+	if name == "" {
+		name = c.CurrentProfile
+	}
+	return c.Profiles[name]
+}
+
 // SetProfile adds or replaces a named profile.
 func (c *Config) SetProfile(name string, p *Profile) {
 	if c.Profiles == nil {

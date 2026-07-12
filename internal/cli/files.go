@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"fmt"
 	"path/filepath"
 
 	"github.com/spf13/cobra"
@@ -28,7 +27,7 @@ The record must be a draft (not published).`,
   zenodo files upload 12345 *.csv --dry-run`,
 	Args: cobra.MinimumNArgs(2),
 	RunE: withAuth("files.upload", func(ctx *CmdContext) error {
-		if err := requireReadOnly(&ctx.R, ctx.Meta, ctx.App); err != nil {
+		if err := enforceReadOnly(&ctx.R, ctx.Meta, ctx.App); err != nil {
 			return err
 		}
 		id := ctx.Args[0]
@@ -107,7 +106,7 @@ Only works on draft records. Published records cannot have files removed.`,
   zenodo files delete 12345 data.csv results.json --confirm`,
 	Args: cobra.MinimumNArgs(2),
 	RunE: withAuth("files.delete", func(ctx *CmdContext) error {
-		if err := requireReadOnly(&ctx.R, ctx.Meta, ctx.App); err != nil {
+		if err := enforceReadOnly(&ctx.R, ctx.Meta, ctx.App); err != nil {
 			return err
 		}
 		if err := requireConfirm(&ctx.R, ctx.Meta, ctx.App); err != nil {
@@ -194,8 +193,8 @@ Use --latest to resolve the latest published version before downloading.`,
 				"dest":      dest,
 			}, nil)
 		}
-		_, err := fmt.Fprintf(ctx.Cmd.ErrOrStderr(), "Downloaded files from %s to %s\n", id, dest)
-		return err
+		ctx.R.Human("Downloaded files from %s to %s\n", id, dest)
+		return nil
 	}),
 }
 
@@ -234,7 +233,7 @@ without re-uploading them.`,
   zenodo files import 12345 --dry-run`,
 	Args: cobra.ExactArgs(1),
 	RunE: withAuth("files.import", func(ctx *CmdContext) error {
-		if err := requireReadOnly(&ctx.R, ctx.Meta, ctx.App); err != nil {
+		if err := enforceReadOnly(&ctx.R, ctx.Meta, ctx.App); err != nil {
 			return err
 		}
 		id := ctx.Args[0]

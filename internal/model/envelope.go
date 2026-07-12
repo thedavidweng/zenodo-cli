@@ -40,7 +40,7 @@ type ErrorBody struct {
 type Meta struct {
 	Command       string   `json:"command,omitempty"`
 	Profile       string   `json:"profile,omitempty"`
-	DurationMS    int64    `json:"duration_ms,omitempty"`
+	DurationMS    int64    `json:"duration_ms"`
 	SchemaVersion string   `json:"schema_version"`
 	RequestID     string   `json:"request_id,omitempty"`
 	Warnings      []string `json:"warnings,omitempty"`

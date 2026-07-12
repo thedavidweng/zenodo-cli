@@ -16,30 +16,21 @@ This command does not require authentication.`,
 	Example: `  zenodo search "machine learning"
   zenodo search "climate" --json`,
 	Args: cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		app := GetAppContext(cmd.Context())
-		r := newRenderer(app, cmd)
-		meta := metaInput(app, "search")
-
-		client, err := getClient(app)
+	RunE: withPublicClient("search", func(ctx *CmdContext) error {
+		query := ctx.Args[0]
+		resp, err := ctx.Client.SearchRecords(ctx.Cmd.Context(), query)
 		if err != nil {
-			return r.Failure(meta, output.Errorf(model.ErrConfig, "%v", err))
+			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
 		}
 
-		query := args[0]
-		resp, err := client.SearchRecords(cmd.Context(), query)
-		if err != nil {
-			return r.Failure(meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
-		}
-
-		if app.JSON {
-			return r.Success(meta, resp.Hits, nil)
+		if ctx.App.JSON {
+			return ctx.R.Success(ctx.Meta, resp.Hits, nil)
 		}
 
 		for _, rec := range resp.Hits.Hits {
-			r.Human("[%s] %s\n", rec.ID, rec.Metadata.Title)
+			ctx.R.Human("[%s] %s\n", rec.ID, rec.Metadata.Title)
 		}
-		r.Human("\nTotal: %d\n", resp.Hits.Total)
+		ctx.R.Human("\nTotal: %d\n", resp.Hits.Total)
 		return nil
-	},
+	}),
 }

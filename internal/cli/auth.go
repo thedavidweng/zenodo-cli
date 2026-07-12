@@ -37,10 +37,7 @@ Three ways to provide the token (in order of precedence):
 		r := newRenderer(app, cmd)
 		meta := metaInput(app, "auth.login")
 
-		cfgPath := app.ConfigFile
-		if cfgPath == "" {
-			cfgPath = config.DefaultConfigPath()
-		}
+		cfgPath := resolveConfigPath(app.ConfigFile)
 		cfg, err := config.LoadOrCreate(cfgPath)
 		if err != nil {
 			return r.Failure(meta, output.Errorf(model.ErrConfig, "loading config: %v", err))
@@ -101,10 +98,7 @@ var authStatusCmd = &cobra.Command{
 		r := newRenderer(app, cmd)
 		meta := metaInput(app, "auth.status")
 
-		cfgPath := app.ConfigFile
-		if cfgPath == "" {
-			cfgPath = config.DefaultConfigPath()
-		}
+		cfgPath := resolveConfigPath(app.ConfigFile)
 		cfg, err := config.Load(cfgPath)
 		if err != nil {
 			return r.Failure(meta, output.ErrorWithDetails(
@@ -146,10 +140,7 @@ var authLogoutCmd = &cobra.Command{
 		r := newRenderer(app, cmd)
 		meta := metaInput(app, "auth.logout")
 
-		cfgPath := app.ConfigFile
-		if cfgPath == "" {
-			cfgPath = config.DefaultConfigPath()
-		}
+		cfgPath := resolveConfigPath(app.ConfigFile)
 		cfg, err := config.Load(cfgPath)
 		if err != nil {
 			return r.Failure(meta, output.Errorf(model.ErrConfig, "loading config: %v", err))
