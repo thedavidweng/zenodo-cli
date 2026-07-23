@@ -70,10 +70,10 @@ type ClientConfig struct {
 // base URL with an empty token — used by public commands like search.
 //
 // Override precedence (highest first):
-//   1. profile.Endpoints.API (test/self-hosted override)
-//   2. CLI --sandbox flag (swaps default base URL to sandbox)
-//   3. profile base_url / env ZENODO_API_URL
-//   4. config defaults
+//  1. profile.Endpoints.API (test/self-hosted override)
+//  2. CLI --sandbox flag (swaps default base URL to sandbox)
+//  3. profile base_url / env ZENODO_API_URL
+//  4. config defaults
 func ResolveClientConfig(configFile, profileName string, sandbox, requireProfile bool) (ClientConfig, error) {
 	cfgPath := configFile
 	if cfgPath == "" {
