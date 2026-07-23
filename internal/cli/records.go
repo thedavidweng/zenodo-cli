@@ -51,19 +51,22 @@ use "records publish" to make it public.`,
   zenodo records create --metadata meta.json
   zenodo records create --title "Test" --dry-run`,
 	RunE: withAuth("records.create", func(ctx *CmdContext) error {
-		if err := enforceReadOnly(&ctx.R, ctx.Meta, ctx.App); err != nil {
+		title, _ := ctx.Cmd.Flags().GetString("title")
+		metadataFile, _ := ctx.Cmd.Flags().GetString("metadata")
+
+		proceed, err := ctx.Gate.Allow(RiskMediumWrite, Plan{
+			Action:    "create_record",
+			HumanMsg:  "Would create draft record (title=%q, metadata=%s)\n",
+			HumanArgs: []any{title, metadataFile},
+		})
+		if err != nil {
 			return err
 		}
-		if ctx.App.DryRun {
-			title, _ := ctx.Cmd.Flags().GetString("title")
-			metadataFile, _ := ctx.Cmd.Flags().GetString("metadata")
-			ctx.R.Human("Would create draft record (title=%q, metadata=%s)\n", title, metadataFile)
-			return ctx.R.Success(ctx.Meta, map[string]any{"planned": true, "action": "create_record"}, nil)
+		if !proceed {
+			return nil
 		}
 
-		title, _ := ctx.Cmd.Flags().GetString("title")
 		description, _ := ctx.Cmd.Flags().GetString("description")
-		metadataFile, _ := ctx.Cmd.Flags().GetString("metadata")
 
 		var meta any
 		if metadataFile != "" {
@@ -140,16 +143,18 @@ Requires --confirm because this operation is irreversible.`,
 	Example: "  zenodo records delete 12345 --confirm",
 	Args:    cobra.ExactArgs(1),
 	RunE: withAuth("records.delete", func(ctx *CmdContext) error {
-		if err := enforceReadOnly(&ctx.R, ctx.Meta, ctx.App); err != nil {
-			return err
-		}
-		if err := requireConfirm(&ctx.R, ctx.Meta, ctx.App); err != nil {
-			return err
-		}
 		id := ctx.Args[0]
-		if ctx.App.DryRun {
-			ctx.R.Human("Would delete draft %s\n", id)
-			return ctx.R.Success(ctx.Meta, map[string]any{"planned": true, "id": id, "action": "delete_draft"}, nil)
+		proceed, err := ctx.Gate.Allow(RiskHighWrite, Plan{
+			Action:    "delete_draft",
+			HumanMsg:  "Would delete draft %s\n",
+			HumanArgs: []any{id},
+			Data:      map[string]any{"id": id},
+		})
+		if err != nil {
+			return err
+		}
+		if !proceed {
+			return nil
 		}
 		if err := ctx.Client.DeleteDraft(ctx.Cmd.Context(), id); err != nil {
 			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
@@ -171,16 +176,18 @@ This is irreversible. Once published, a record cannot be unpublished or deleted.
 	Example: "  zenodo records publish 12345 --confirm",
 	Args:    cobra.ExactArgs(1),
 	RunE: withAuth("records.publish", func(ctx *CmdContext) error {
-		if err := enforceReadOnly(&ctx.R, ctx.Meta, ctx.App); err != nil {
-			return err
-		}
-		if err := requireConfirm(&ctx.R, ctx.Meta, ctx.App); err != nil {
-			return err
-		}
 		id := ctx.Args[0]
-		if ctx.App.DryRun {
-			ctx.R.Human("Would publish draft %s (irreversible)\n", id)
-			return ctx.R.Success(ctx.Meta, map[string]any{"planned": true, "id": id, "action": "publish_draft"}, nil)
+		proceed, err := ctx.Gate.Allow(RiskHighWrite, Plan{
+			Action:    "publish_draft",
+			HumanMsg:  "Would publish draft %s (irreversible)\n",
+			HumanArgs: []any{id},
+			Data:      map[string]any{"id": id},
+		})
+		if err != nil {
+			return err
+		}
+		if !proceed {
+			return nil
 		}
 		rec, err := ctx.Client.PublishDraft(ctx.Cmd.Context(), id)
 		if err != nil {
@@ -204,13 +211,18 @@ modify it and publish it as a new version.`,
 	Example: "  zenodo records new-version 12345",
 	Args:    cobra.ExactArgs(1),
 	RunE: withAuth("records.new-version", func(ctx *CmdContext) error {
-		if err := enforceReadOnly(&ctx.R, ctx.Meta, ctx.App); err != nil {
+		id := ctx.Args[0]
+		proceed, err := ctx.Gate.Allow(RiskMediumWrite, Plan{
+			Action:    "new_version",
+			HumanMsg:  "Would create new version draft from %s\n",
+			HumanArgs: []any{id},
+			Data:      map[string]any{"id": id},
+		})
+		if err != nil {
 			return err
 		}
-		id := ctx.Args[0]
-		if ctx.App.DryRun {
-			ctx.R.Human("Would create new version draft from %s\n", id)
-			return ctx.R.Success(ctx.Meta, map[string]any{"planned": true, "id": id, "action": "new_version"}, nil)
+		if !proceed {
+			return nil
 		}
 		rec, err := ctx.Client.NewVersion(ctx.Cmd.Context(), id)
 		if err != nil {
@@ -257,13 +269,18 @@ The reserved DOI can be cited immediately, even before the record is published.`
 	Example: "  zenodo records reserve-doi 12345",
 	Args:    cobra.ExactArgs(1),
 	RunE: withAuth("records.reserve-doi", func(ctx *CmdContext) error {
-		if err := enforceReadOnly(&ctx.R, ctx.Meta, ctx.App); err != nil {
+		id := ctx.Args[0]
+		proceed, err := ctx.Gate.Allow(RiskMediumWrite, Plan{
+			Action:    "reserve_doi",
+			HumanMsg:  "Would reserve DOI for %s\n",
+			HumanArgs: []any{id},
+			Data:      map[string]any{"id": id},
+		})
+		if err != nil {
 			return err
 		}
-		id := ctx.Args[0]
-		if ctx.App.DryRun {
-			ctx.R.Human("Would reserve DOI for %s\n", id)
-			return ctx.R.Success(ctx.Meta, map[string]any{"planned": true, "id": id, "action": "reserve_doi"}, nil)
+		if !proceed {
+			return nil
 		}
 		rec, err := ctx.Client.ReserveDOI(ctx.Cmd.Context(), id)
 		if err != nil {
@@ -287,25 +304,22 @@ Use --community to specify the community identifier.`,
   zenodo records submit 12345 --community my-community --confirm`,
 	Args: cobra.ExactArgs(1),
 	RunE: withAuth("records.submit", func(ctx *CmdContext) error {
-		if err := enforceReadOnly(&ctx.R, ctx.Meta, ctx.App); err != nil {
-			return err
-		}
 		community, _ := ctx.Cmd.Flags().GetString("community")
 		if community == "" {
 			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrValidationFailed, "--community is required"))
 		}
-		if err := requireConfirm(&ctx.R, ctx.Meta, ctx.App); err != nil {
+		id := ctx.Args[0]
+		proceed, err := ctx.Gate.Allow(RiskHighWrite, Plan{
+			Action:    "submit_to_community",
+			HumanMsg:  "Would submit %s to community %s\n",
+			HumanArgs: []any{id, community},
+			Data:      map[string]any{"id": id, "community": community},
+		})
+		if err != nil {
 			return err
 		}
-		id := ctx.Args[0]
-		if ctx.App.DryRun {
-			ctx.R.Human("Would submit %s to community %s\n", id, community)
-			return ctx.R.Success(ctx.Meta, map[string]any{
-				"planned":   true,
-				"id":        id,
-				"community": community,
-				"action":    "submit_to_community",
-			}, nil)
+		if !proceed {
+			return nil
 		}
 		if err := ctx.Client.SubmitToCommunity(ctx.Cmd.Context(), id, community); err != nil {
 			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))

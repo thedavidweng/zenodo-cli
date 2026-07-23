@@ -43,6 +43,7 @@ type CmdContext struct {
 	Client *zenodo.Client
 	R      output.Renderer
 	Meta   output.RuntimeMetaInput
+	Gate   *Gate
 }
 
 // CmdFunc is a command handler that receives a ready-to-use context.
@@ -62,7 +63,7 @@ func withAuth(command string, fn CmdFunc) func(cmd *cobra.Command, args []string
 		if err := requireAuth(&r, meta, client); err != nil {
 			return err
 		}
-		return fn(&CmdContext{App: app, Cmd: cmd, Args: args, Client: client, R: r, Meta: meta})
+		return fn(&CmdContext{App: app, Cmd: cmd, Args: args, Client: client, R: r, Meta: meta, Gate: newGate(app, &r, meta)})
 	}
 }
 
@@ -77,7 +78,7 @@ func withClient(command string, fn CmdFunc) func(cmd *cobra.Command, args []stri
 		if err != nil {
 			return r.Failure(meta, output.Errorf(model.ErrConfig, "%v", err))
 		}
-		return fn(&CmdContext{App: app, Cmd: cmd, Args: args, Client: client, R: r, Meta: meta})
+		return fn(&CmdContext{App: app, Cmd: cmd, Args: args, Client: client, R: r, Meta: meta, Gate: newGate(app, &r, meta)})
 	}
 }
 
@@ -119,7 +120,7 @@ func withPublicClient(command string, fn CmdFunc) func(cmd *cobra.Command, args 
 		client.Retries = app.Retries
 		client.HTTPClient.Timeout = app.Timeout
 
-		return fn(&CmdContext{App: app, Cmd: cmd, Args: args, Client: client, R: r, Meta: meta})
+		return fn(&CmdContext{App: app, Cmd: cmd, Args: args, Client: client, R: r, Meta: meta, Gate: newGate(app, &r, meta)})
 	}
 }
 
@@ -164,22 +165,6 @@ func requireAuth(r *output.Renderer, meta output.RuntimeMetaInput, client *zenod
 			"Authentication required. Run 'zenodo auth login' to authenticate.",
 			map[string]any{"profile": meta.Profile},
 		))
-	}
-	return nil
-}
-
-// requireConfirm checks that --confirm was passed for destructive operations.
-func requireConfirm(r *output.Renderer, meta output.RuntimeMetaInput, app *AppContext) error {
-	if !app.Confirm {
-		return r.Failure(meta, output.Errorf(model.ErrConfirmationRequired, "use --confirm to proceed"))
-	}
-	return nil
-}
-
-// enforceReadOnly blocks mutations when --read-only is set.
-func enforceReadOnly(r *output.Renderer, meta output.RuntimeMetaInput, app *AppContext) error {
-	if app.ReadOnly {
-		return r.Failure(meta, output.Errorf(model.ErrReadOnlyViolation, "--read-only blocks this mutation"))
 	}
 	return nil
 }

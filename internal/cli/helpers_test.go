@@ -5,6 +5,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -84,51 +85,85 @@ func TestRequireAuthWithoutToken(t *testing.T) {
 	}
 }
 
-func TestRequireConfirmWithFlag(t *testing.T) {
+func TestGateAllowReadTier(t *testing.T) {
 	var out bytes.Buffer
 	r := output.Renderer{Out: &out, Err: &out}
 	meta := output.RuntimeMetaInput{Command: "test"}
-	app := &AppContext{Confirm: true}
+	app := &AppContext{}
+	g := newGate(app, &r, meta)
 
-	err := requireConfirm(&r, meta, app)
+	proceed, err := g.Allow(RiskRead, Plan{})
 	if err != nil {
-		t.Errorf("expected no error with confirm, got: %v", err)
+		t.Errorf("RiskRead should always proceed: %v", err)
+	}
+	if !proceed {
+		t.Error("RiskRead should proceed")
 	}
 }
 
-func TestRequireConfirmWithoutFlag(t *testing.T) {
-	var out, errBuf bytes.Buffer
-	r := output.Renderer{Out: &out, Err: &errBuf, JSON: true}
-	meta := output.RuntimeMetaInput{Command: "test"}
-	app := &AppContext{Confirm: false}
-
-	err := requireConfirm(&r, meta, app)
-	if err == nil {
-		t.Error("expected error without confirm")
-	}
-}
-
-func TestRequireReadOnlyWithFlag(t *testing.T) {
+func TestGateAllowMediumWriteBlockedByReadOnly(t *testing.T) {
 	var out, errBuf bytes.Buffer
 	r := output.Renderer{Out: &out, Err: &errBuf, JSON: true}
 	meta := output.RuntimeMetaInput{Command: "test"}
 	app := &AppContext{ReadOnly: true}
+	g := newGate(app, &r, meta)
 
-	err := enforceReadOnly(&r, meta, app)
+	_, err := g.Allow(RiskMediumWrite, Plan{HumanMsg: "Would test\n"})
 	if err == nil {
-		t.Error("expected error when read-only is set")
+		t.Error("expected error when read-only blocks medium-write")
 	}
 }
 
-func TestRequireReadOnlyWithoutFlag(t *testing.T) {
+func TestGateAllowHighWriteRequiresConfirm(t *testing.T) {
+	var out, errBuf bytes.Buffer
+	r := output.Renderer{Out: &out, Err: &errBuf, JSON: true}
+	meta := output.RuntimeMetaInput{Command: "test"}
+	app := &AppContext{Confirm: false}
+	g := newGate(app, &r, meta)
+
+	_, err := g.Allow(RiskHighWrite, Plan{HumanMsg: "Would test\n"})
+	if err == nil {
+		t.Error("expected error when high-write lacks --confirm")
+	}
+}
+
+func TestGateAllowHighWriteWithConfirm(t *testing.T) {
 	var out bytes.Buffer
 	r := output.Renderer{Out: &out, Err: &out}
 	meta := output.RuntimeMetaInput{Command: "test"}
-	app := &AppContext{ReadOnly: false}
+	app := &AppContext{Confirm: true}
+	g := newGate(app, &r, meta)
 
-	err := enforceReadOnly(&r, meta, app)
+	proceed, err := g.Allow(RiskHighWrite, Plan{HumanMsg: "Would test\n"})
 	if err != nil {
-		t.Errorf("expected no error when read-only is not set, got: %v", err)
+		t.Errorf("expected no error with confirm, got: %v", err)
+	}
+	if !proceed {
+		t.Error("expected to proceed with confirm")
+	}
+}
+
+func TestGateAllowDryRunEmitsPlan(t *testing.T) {
+	var out bytes.Buffer
+	r := output.Renderer{Out: &out, Err: &out}
+	meta := output.RuntimeMetaInput{Command: "test"}
+	app := &AppContext{DryRun: true, Confirm: true}
+	g := newGate(app, &r, meta)
+
+	proceed, err := g.Allow(RiskHighWrite, Plan{
+		Action:    "delete_draft",
+		HumanMsg:  "Would delete %s\n",
+		HumanArgs: []any{"12345"},
+		Data:      map[string]any{"id": "12345"},
+	})
+	if err != nil {
+		t.Fatalf("dry-run should not error: %v", err)
+	}
+	if proceed {
+		t.Error("dry-run should not proceed")
+	}
+	if !strings.Contains(out.String(), "Would delete 12345") {
+		t.Errorf("expected 'Would delete 12345' in output: %s", out.String())
 	}
 }
 

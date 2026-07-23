@@ -51,26 +51,22 @@ Use --data to provide the JSON request body. Without --data, sends an empty body
   zenodo api post /api/records/12345/draft/actions/publish --confirm`,
 	Args: cobra.ExactArgs(1),
 	RunE: withAuth("api.post", func(ctx *CmdContext) error {
-		if err := enforceReadOnly(&ctx.R, ctx.Meta, ctx.App); err != nil {
-			return err
-		}
-		if err := requireConfirm(&ctx.R, ctx.Meta, ctx.App); err != nil {
-			return err
-		}
 		path := ensurePath(ctx.Args[0])
-
 		data, _ := ctx.Cmd.Flags().GetString("data")
 
-		if ctx.App.DryRun {
-			ctx.R.Human("Would POST to %s\n", path)
+		proceed, err := ctx.Gate.Allow(RiskHighWrite, Plan{
+			HumanMsg:  "Would POST to %s\n",
+			HumanArgs: []any{path},
+			Data:      map[string]any{"method": "POST", "path": path},
+		})
+		if err != nil {
+			return err
+		}
+		if !proceed {
 			if data != "" {
 				ctx.R.Human("  body: %s\n", data)
 			}
-			return ctx.R.Success(ctx.Meta, map[string]any{
-				"planned": true,
-				"method":  "POST",
-				"path":    path,
-			}, nil)
+			return nil
 		}
 
 		var body any
@@ -81,7 +77,7 @@ Use --data to provide the JSON request body. Without --data, sends an empty body
 		}
 
 		var result any
-		err := ctx.Client.Do(ctx.Cmd.Context(), "POST", path, body, &result)
+		err = ctx.Client.Do(ctx.Cmd.Context(), "POST", path, body, &result)
 		if err != nil {
 			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
 		}
@@ -103,26 +99,22 @@ Use --data to provide the JSON request body. Without --data, sends an empty body
   zenodo api put /api/records/12345/draft --data @meta.json --confirm`,
 	Args: cobra.ExactArgs(1),
 	RunE: withAuth("api.put", func(ctx *CmdContext) error {
-		if err := enforceReadOnly(&ctx.R, ctx.Meta, ctx.App); err != nil {
-			return err
-		}
-		if err := requireConfirm(&ctx.R, ctx.Meta, ctx.App); err != nil {
-			return err
-		}
 		path := ensurePath(ctx.Args[0])
-
 		data, _ := ctx.Cmd.Flags().GetString("data")
 
-		if ctx.App.DryRun {
-			ctx.R.Human("Would PUT to %s\n", path)
+		proceed, err := ctx.Gate.Allow(RiskHighWrite, Plan{
+			HumanMsg:  "Would PUT to %s\n",
+			HumanArgs: []any{path},
+			Data:      map[string]any{"method": "PUT", "path": path},
+		})
+		if err != nil {
+			return err
+		}
+		if !proceed {
 			if data != "" {
 				ctx.R.Human("  body: %s\n", data)
 			}
-			return ctx.R.Success(ctx.Meta, map[string]any{
-				"planned": true,
-				"method":  "PUT",
-				"path":    path,
-			}, nil)
+			return nil
 		}
 
 		var body any
@@ -133,7 +125,7 @@ Use --data to provide the JSON request body. Without --data, sends an empty body
 		}
 
 		var result any
-		err := ctx.Client.Do(ctx.Cmd.Context(), "PUT", path, body, &result)
+		err = ctx.Client.Do(ctx.Cmd.Context(), "PUT", path, body, &result)
 		if err != nil {
 			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
 		}
