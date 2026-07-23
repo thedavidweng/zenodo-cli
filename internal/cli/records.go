@@ -26,7 +26,7 @@ var recordsListCmd = &cobra.Command{
 	RunE: withAuth("records.list", func(ctx *CmdContext) error {
 		resp, err := ctx.Client.ListRecords(ctx.Cmd.Context())
 		if err != nil {
-			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
+			return ctx.R.Failure(ctx.Meta, apiError(err))
 		}
 		return ctx.R.Render(ctx.Meta, resp.Hits, func() {
 			for _, rec := range resp.Hits.Hits {
@@ -89,7 +89,7 @@ use "records publish" to make it public.`,
 
 		rec, err := ctx.Client.CreateRecord(ctx.Cmd.Context(), meta)
 		if err != nil {
-			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
+			return ctx.R.Failure(ctx.Meta, apiError(err))
 		}
 		return ctx.R.Render(ctx.Meta, rec, func() {
 			ctx.R.Human("Created draft %s: %s\n", rec.ID, rec.Metadata.Title)
@@ -113,7 +113,7 @@ Tries to fetch the draft first; if none exists, falls back to the published reco
 		if err != nil {
 			rec, err = ctx.Client.GetRecord(ctx.Cmd.Context(), id)
 			if err != nil {
-				return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
+				return ctx.R.Failure(ctx.Meta, apiError(err))
 			}
 		}
 		return ctx.R.Render(ctx.Meta, rec, func() {
@@ -150,7 +150,7 @@ Requires --confirm because this operation is irreversible.`,
 			return nil
 		}
 		if err := ctx.Client.DeleteDraft(ctx.Cmd.Context(), id); err != nil {
-			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
+			return ctx.R.Failure(ctx.Meta, apiError(err))
 		}
 		return ctx.R.Render(ctx.Meta, map[string]any{"deleted": id}, func() {
 			ctx.R.Human("Deleted draft %s\n", id)
@@ -182,7 +182,7 @@ This is irreversible. Once published, a record cannot be unpublished or deleted.
 		}
 		rec, err := ctx.Client.PublishDraft(ctx.Cmd.Context(), id)
 		if err != nil {
-			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
+			return ctx.R.Failure(ctx.Meta, apiError(err))
 		}
 		return ctx.R.Render(ctx.Meta, rec, func() {
 			ctx.R.Human("Published %s: %s\n", rec.ID, rec.Metadata.Title)
@@ -215,7 +215,7 @@ modify it and publish it as a new version.`,
 		}
 		rec, err := ctx.Client.NewVersion(ctx.Cmd.Context(), id)
 		if err != nil {
-			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
+			return ctx.R.Failure(ctx.Meta, apiError(err))
 		}
 		return ctx.R.Render(ctx.Meta, rec, func() {
 			ctx.R.Human("Created new version %s (from %s)\n", rec.ID, id)
@@ -234,7 +234,7 @@ var recordsVersionsCmd = &cobra.Command{
 		id := ctx.Args[0]
 		resp, err := ctx.Client.ListVersions(ctx.Cmd.Context(), id)
 		if err != nil {
-			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
+			return ctx.R.Failure(ctx.Meta, apiError(err))
 		}
 		return ctx.R.Render(ctx.Meta, resp.Hits, func() {
 			for _, rec := range resp.Hits.Hits {
@@ -269,7 +269,7 @@ The reserved DOI can be cited immediately, even before the record is published.`
 		}
 		rec, err := ctx.Client.ReserveDOI(ctx.Cmd.Context(), id)
 		if err != nil {
-			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
+			return ctx.R.Failure(ctx.Meta, apiError(err))
 		}
 		return ctx.R.Render(ctx.Meta, rec, func() {
 			ctx.R.Human("Reserved DOI for %s\n", rec.ID)
@@ -305,7 +305,7 @@ Use --community to specify the community identifier.`,
 			return nil
 		}
 		if err := ctx.Client.SubmitToCommunity(ctx.Cmd.Context(), id, community); err != nil {
-			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
+			return ctx.R.Failure(ctx.Meta, apiError(err))
 		}
 		return ctx.R.Render(ctx.Meta, map[string]any{
 			"id":        id,
@@ -333,7 +333,7 @@ requests related to a specific record.`,
 		}
 		resp, err := ctx.Client.ListRequests(ctx.Cmd.Context(), query)
 		if err != nil {
-			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
+			return ctx.R.Failure(ctx.Meta, apiError(err))
 		}
 		return ctx.R.Render(ctx.Meta, resp.Hits, func() {
 			for _, rec := range resp.Hits.Hits {

@@ -1,12 +1,10 @@
 package cli
 
 import (
+	"fmt"
 	"path/filepath"
 
 	"github.com/spf13/cobra"
-
-	"github.com/thedavidweng/zenodo-cli/internal/model"
-	"github.com/thedavidweng/zenodo-cli/internal/output"
 )
 
 var filesCmd = &cobra.Command{
@@ -44,7 +42,7 @@ The record must be a draft (not published).`,
 
 		for _, filePath := range files {
 			if err := ctx.Client.UploadFile(ctx.Cmd.Context(), id, filePath); err != nil {
-				return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "uploading %s: %v", filePath, err))
+				return ctx.R.Failure(ctx.Meta, apiError(fmt.Errorf("uploading %s: %w", filePath, err)))
 			}
 			ctx.R.Human("Uploaded %s\n", filepath.Base(filePath))
 		}
@@ -77,7 +75,7 @@ to the published file list.`,
 			// Fall back to published files
 			files, err = ctx.Client.ListPublishedFiles(ctx.Cmd.Context(), id)
 			if err != nil {
-				return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
+				return ctx.R.Failure(ctx.Meta, apiError(err))
 			}
 		}
 		return ctx.R.Render(ctx.Meta, map[string]any{
@@ -118,7 +116,7 @@ Only works on draft records. Published records cannot have files removed.`,
 
 		for _, name := range filenames {
 			if err := ctx.Client.DeleteFile(ctx.Cmd.Context(), id, name); err != nil {
-				return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "deleting %s: %v", name, err))
+				return ctx.R.Failure(ctx.Meta, apiError(fmt.Errorf("deleting %s: %w", name, err)))
 			}
 			ctx.R.Human("Deleted %s\n", name)
 		}
@@ -156,7 +154,7 @@ Use --latest to resolve the latest published version before downloading.`,
 		if latest {
 			resolved, err := ctx.Client.ResolveLatest(ctx.Cmd.Context(), id)
 			if err != nil {
-				return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "resolving latest version: %v", err))
+				return ctx.R.Failure(ctx.Meta, apiError(fmt.Errorf("resolving latest version: %w", err)))
 			}
 			if resolved != id {
 				ctx.R.Human("Resolved latest version: %s -> %s\n", id, resolved)
@@ -177,7 +175,7 @@ Use --latest to resolve the latest published version before downloading.`,
 		}
 
 		if err := ctx.Client.DownloadRecord(ctx.Cmd.Context(), id, dest); err != nil {
-			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
+			return ctx.R.Failure(ctx.Meta, apiError(err))
 		}
 		return ctx.R.Render(ctx.Meta, map[string]any{
 			"record_id": id,
@@ -200,7 +198,7 @@ var filesInfoCmd = &cobra.Command{
 		filename := ctx.Args[1]
 		f, err := ctx.Client.GetFile(ctx.Cmd.Context(), id, filename)
 		if err != nil {
-			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
+			return ctx.R.Failure(ctx.Meta, apiError(err))
 		}
 		return ctx.R.Render(ctx.Meta, f, func() {
 			ctx.R.Human("Key:      %s\n", f.Key)
@@ -235,7 +233,7 @@ without re-uploading them.`,
 			return nil
 		}
 		if err := ctx.Client.ImportFiles(ctx.Cmd.Context(), id); err != nil {
-			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
+			return ctx.R.Failure(ctx.Meta, apiError(err))
 		}
 		return ctx.R.Render(ctx.Meta, map[string]any{
 			"record_id": id,

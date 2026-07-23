@@ -2,9 +2,6 @@ package cli
 
 import (
 	"github.com/spf13/cobra"
-
-	"github.com/thedavidweng/zenodo-cli/internal/model"
-	"github.com/thedavidweng/zenodo-cli/internal/output"
 )
 
 var searchCmd = &cobra.Command{
@@ -20,7 +17,7 @@ This command does not require authentication.`,
 		query := ctx.Args[0]
 		resp, err := ctx.Client.SearchRecords(ctx.Cmd.Context(), query)
 		if err != nil {
-			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
+			return ctx.R.Failure(ctx.Meta, apiError(err))
 		}
 
 		return ctx.R.Render(ctx.Meta, resp.Hits, func() {

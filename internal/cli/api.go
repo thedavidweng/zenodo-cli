@@ -31,7 +31,7 @@ var apiGetCmd = &cobra.Command{
 		var result any
 		err := ctx.Client.Do(ctx.Cmd.Context(), "GET", path, nil, &result)
 		if err != nil {
-			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
+			return ctx.R.Failure(ctx.Meta, apiError(err))
 		}
 
 		if ctx.App.JSON {
@@ -79,7 +79,7 @@ Use --data to provide the JSON request body. Without --data, sends an empty body
 		var result any
 		err = ctx.Client.Do(ctx.Cmd.Context(), "POST", path, body, &result)
 		if err != nil {
-			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
+			return ctx.R.Failure(ctx.Meta, apiError(err))
 		}
 
 		if ctx.App.JSON {
@@ -127,7 +127,7 @@ Use --data to provide the JSON request body. Without --data, sends an empty body
 		var result any
 		err = ctx.Client.Do(ctx.Cmd.Context(), "PUT", path, body, &result)
 		if err != nil {
-			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
+			return ctx.R.Failure(ctx.Meta, apiError(err))
 		}
 
 		if ctx.App.JSON {

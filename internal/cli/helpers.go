@@ -2,6 +2,7 @@ package cli
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -172,6 +173,20 @@ func requireAuth(r *output.Renderer, meta output.RuntimeMetaInput, client *zenod
 // parseJSON parses a JSON string into the target value.
 func parseJSON(s string, v any) error {
 	return json.Unmarshal([]byte(s), v)
+}
+
+// apiError translates a zenodo client error into an ErrorBody with the
+// correct error code. For unwrapped APIError instances, it uses the clean
+// message without the "API error (HTTP xxx):" prefix. For wrapped errors
+// (e.g. "uploading data.csv: ..."), it preserves the full context.
+// This centralizes the error-code selection that was previously repeated
+// at 20+ call sites.
+func apiError(err error) model.ErrorBody {
+	var apiErr *zenodo.APIError
+	if errors.As(err, &apiErr) && err.Error() == apiErr.Error() {
+		return output.Errorf(model.ErrZenodoAPI, "%s", apiErr.Message)
+	}
+	return output.Errorf(model.ErrZenodoAPI, "%v", err)
 }
 
 // resolveConfigPath returns the config file path to use: the explicit override

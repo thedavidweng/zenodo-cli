@@ -42,6 +42,23 @@ func EnsureLeadingSlash(path string) string {
 	return path
 }
 
+// APIError is a typed error from the Zenodo InvenioRDM API. It carries the
+// HTTP status code so callers can distinguish 4xx from 5xx without parsing
+// the message string.
+type APIError struct {
+	StatusCode int
+	Message    string
+}
+
+func (e *APIError) Error() string {
+	return fmt.Sprintf("API error (HTTP %d): %s", e.StatusCode, e.Message)
+}
+
+// IsRetryable returns true for 429 and 5xx responses.
+func (e *APIError) IsRetryable() bool {
+	return e.StatusCode == 429 || e.StatusCode >= 500
+}
+
 // ListRecords returns records owned by the authenticated user.
 func (c *Client) ListRecords(ctx context.Context) (SearchResponse, error) {
 	var resp SearchResponse
@@ -461,14 +478,15 @@ func parseAPIError(statusCode int, bodyBytes []byte) error {
 			Messages []string `json:"messages"`
 		} `json:"errors"`
 	}
+	msg := ""
 	if json.Unmarshal(bodyBytes, &apiErr) == nil {
-		msg := apiErr.Message
+		msg = apiErr.Message
 		for _, e := range apiErr.Errors {
 			msg += fmt.Sprintf("; %s: %s", e.Field, strings.Join(e.Messages, ", "))
 		}
-		if msg != "" {
-			return fmt.Errorf("API error (HTTP %d): %s", statusCode, msg)
-		}
 	}
-	return fmt.Errorf("API error (HTTP %d): %s", statusCode, string(bodyBytes))
+	if msg == "" {
+		msg = string(bodyBytes)
+	}
+	return &APIError{StatusCode: statusCode, Message: msg}
 }
