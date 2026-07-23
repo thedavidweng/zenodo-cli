@@ -36,11 +36,8 @@ var versionCmd = &cobra.Command{
 			GoVersion: runtime.Version(),
 		}
 
-		if app.JSON {
-			return r.Success(metaInput(app, "version"), data, nil)
-		}
-
-		r.Human("zenodo version %s (commit: %s, date: %s)\n", Version, Commit, Date)
-		return nil
+		return r.Render(metaInput(app, "version"), data, func() {
+			r.Human("zenodo version %s (commit: %s, date: %s)\n", Version, Commit, Date)
+		})
 	},
 }

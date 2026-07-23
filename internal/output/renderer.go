@@ -67,6 +67,18 @@ func (r *Renderer) Human(format string, args ...any) {
 	_, _ = fmt.Fprintf(r.Out, format+"\n", args...)
 }
 
+// Render emits either a JSON success envelope or human output, depending on
+// the renderer's mode. The human closure is called only in human mode.
+// This absorbs the if JSON { Success } else { Human } branch that would
+// otherwise be duplicated in every command.
+func (r *Renderer) Render(meta RuntimeMetaInput, data any, human func()) error {
+	if r.JSON {
+		return r.Success(meta, data, nil)
+	}
+	human()
+	return nil
+}
+
 func (r *Renderer) buildMeta(input RuntimeMetaInput, warnings []string) model.Meta {
 	duration := time.Since(input.StartedAt)
 	return model.Meta{

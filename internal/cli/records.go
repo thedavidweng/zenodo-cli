@@ -28,14 +28,12 @@ var recordsListCmd = &cobra.Command{
 		if err != nil {
 			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
 		}
-		if ctx.App.JSON {
-			return ctx.R.Success(ctx.Meta, resp.Hits, nil)
-		}
-		for _, rec := range resp.Hits.Hits {
-			ctx.R.Human("[%s] %s (%s)\n", rec.ID, rec.Metadata.Title, rec.Status)
-		}
-		ctx.R.Human("\nTotal: %d\n", resp.Hits.Total)
-		return nil
+		return ctx.R.Render(ctx.Meta, resp.Hits, func() {
+			for _, rec := range resp.Hits.Hits {
+				ctx.R.Human("[%s] %s (%s)\n", rec.ID, rec.Metadata.Title, rec.Status)
+			}
+			ctx.R.Human("\nTotal: %d\n", resp.Hits.Total)
+		})
 	}),
 }
 
@@ -93,12 +91,9 @@ use "records publish" to make it public.`,
 		if err != nil {
 			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
 		}
-
-		if ctx.App.JSON {
-			return ctx.R.Success(ctx.Meta, rec, nil)
-		}
-		ctx.R.Human("Created draft %s: %s\n", rec.ID, rec.Metadata.Title)
-		return nil
+		return ctx.R.Render(ctx.Meta, rec, func() {
+			ctx.R.Human("Created draft %s: %s\n", rec.ID, rec.Metadata.Title)
+		})
 	}),
 }
 
@@ -121,16 +116,14 @@ Tries to fetch the draft first; if none exists, falls back to the published reco
 				return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
 			}
 		}
-		if ctx.App.JSON {
-			return ctx.R.Success(ctx.Meta, rec, nil)
-		}
-		ctx.R.Human("ID:          %s\n", rec.ID)
-		ctx.R.Human("Title:       %s\n", rec.Metadata.Title)
-		ctx.R.Human("Status:      %s\n", rec.Status)
-		ctx.R.Human("Created:     %s\n", rec.CreatedAt)
-		ctx.R.Human("Updated:     %s\n", rec.UpdatedAt)
-		ctx.R.Human("Description: %s\n", rec.Metadata.Description)
-		return nil
+		return ctx.R.Render(ctx.Meta, rec, func() {
+			ctx.R.Human("ID:          %s\n", rec.ID)
+			ctx.R.Human("Title:       %s\n", rec.Metadata.Title)
+			ctx.R.Human("Status:      %s\n", rec.Status)
+			ctx.R.Human("Created:     %s\n", rec.CreatedAt)
+			ctx.R.Human("Updated:     %s\n", rec.UpdatedAt)
+			ctx.R.Human("Description: %s\n", rec.Metadata.Description)
+		})
 	}),
 }
 
@@ -159,11 +152,9 @@ Requires --confirm because this operation is irreversible.`,
 		if err := ctx.Client.DeleteDraft(ctx.Cmd.Context(), id); err != nil {
 			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
 		}
-		if ctx.App.JSON {
-			return ctx.R.Success(ctx.Meta, map[string]any{"deleted": id}, nil)
-		}
-		ctx.R.Human("Deleted draft %s\n", id)
-		return nil
+		return ctx.R.Render(ctx.Meta, map[string]any{"deleted": id}, func() {
+			ctx.R.Human("Deleted draft %s\n", id)
+		})
 	}),
 }
 
@@ -193,11 +184,9 @@ This is irreversible. Once published, a record cannot be unpublished or deleted.
 		if err != nil {
 			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
 		}
-		if ctx.App.JSON {
-			return ctx.R.Success(ctx.Meta, rec, nil)
-		}
-		ctx.R.Human("Published %s: %s\n", rec.ID, rec.Metadata.Title)
-		return nil
+		return ctx.R.Render(ctx.Meta, rec, func() {
+			ctx.R.Human("Published %s: %s\n", rec.ID, rec.Metadata.Title)
+		})
 	}),
 }
 
@@ -228,11 +217,9 @@ modify it and publish it as a new version.`,
 		if err != nil {
 			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
 		}
-		if ctx.App.JSON {
-			return ctx.R.Success(ctx.Meta, rec, nil)
-		}
-		ctx.R.Human("Created new version %s (from %s)\n", rec.ID, id)
-		return nil
+		return ctx.R.Render(ctx.Meta, rec, func() {
+			ctx.R.Human("Created new version %s (from %s)\n", rec.ID, id)
+		})
 	}),
 }
 
@@ -249,14 +236,12 @@ var recordsVersionsCmd = &cobra.Command{
 		if err != nil {
 			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
 		}
-		if ctx.App.JSON {
-			return ctx.R.Success(ctx.Meta, resp.Hits, nil)
-		}
-		for _, rec := range resp.Hits.Hits {
-			ctx.R.Human("[%s] %s (%s)\n", rec.ID, rec.Metadata.Title, rec.Status)
-		}
-		ctx.R.Human("\nTotal: %d versions\n", resp.Hits.Total)
-		return nil
+		return ctx.R.Render(ctx.Meta, resp.Hits, func() {
+			for _, rec := range resp.Hits.Hits {
+				ctx.R.Human("[%s] %s (%s)\n", rec.ID, rec.Metadata.Title, rec.Status)
+			}
+			ctx.R.Human("\nTotal: %d versions\n", resp.Hits.Total)
+		})
 	}),
 }
 
@@ -286,11 +271,9 @@ The reserved DOI can be cited immediately, even before the record is published.`
 		if err != nil {
 			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
 		}
-		if ctx.App.JSON {
-			return ctx.R.Success(ctx.Meta, rec, nil)
-		}
-		ctx.R.Human("Reserved DOI for %s\n", rec.ID)
-		return nil
+		return ctx.R.Render(ctx.Meta, rec, func() {
+			ctx.R.Human("Reserved DOI for %s\n", rec.ID)
+		})
 	}),
 }
 
@@ -324,14 +307,12 @@ Use --community to specify the community identifier.`,
 		if err := ctx.Client.SubmitToCommunity(ctx.Cmd.Context(), id, community); err != nil {
 			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
 		}
-		if ctx.App.JSON {
-			return ctx.R.Success(ctx.Meta, map[string]any{
-				"id":        id,
-				"community": community,
-			}, nil)
-		}
-		ctx.R.Human("Submitted %s to community %s for review\n", id, community)
-		return nil
+		return ctx.R.Render(ctx.Meta, map[string]any{
+			"id":        id,
+			"community": community,
+		}, func() {
+			ctx.R.Human("Submitted %s to community %s for review\n", id, community)
+		})
 	}),
 }
 
@@ -354,14 +335,12 @@ requests related to a specific record.`,
 		if err != nil {
 			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
 		}
-		if ctx.App.JSON {
-			return ctx.R.Success(ctx.Meta, resp.Hits, nil)
-		}
-		for _, rec := range resp.Hits.Hits {
-			ctx.R.Human("[%s] %s (%s)\n", rec.ID, rec.Metadata.Title, rec.Status)
-		}
-		ctx.R.Human("\nTotal: %d\n", resp.Hits.Total)
-		return nil
+		return ctx.R.Render(ctx.Meta, resp.Hits, func() {
+			for _, rec := range resp.Hits.Hits {
+				ctx.R.Human("[%s] %s (%s)\n", rec.ID, rec.Metadata.Title, rec.Status)
+			}
+			ctx.R.Human("\nTotal: %d\n", resp.Hits.Total)
+		})
 	}),
 }
 

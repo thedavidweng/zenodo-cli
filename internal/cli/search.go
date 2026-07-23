@@ -23,14 +23,11 @@ This command does not require authentication.`,
 			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
 		}
 
-		if ctx.App.JSON {
-			return ctx.R.Success(ctx.Meta, resp.Hits, nil)
-		}
-
-		for _, rec := range resp.Hits.Hits {
-			ctx.R.Human("[%s] %s\n", rec.ID, rec.Metadata.Title)
-		}
-		ctx.R.Human("\nTotal: %d\n", resp.Hits.Total)
-		return nil
+		return ctx.R.Render(ctx.Meta, resp.Hits, func() {
+			for _, rec := range resp.Hits.Hits {
+				ctx.R.Human("[%s] %s\n", rec.ID, rec.Metadata.Title)
+			}
+			ctx.R.Human("\nTotal: %d\n", resp.Hits.Total)
+		})
 	}),
 }

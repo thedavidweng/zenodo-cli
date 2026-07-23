@@ -80,16 +80,14 @@ to the published file list.`,
 				return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
 			}
 		}
-		if ctx.App.JSON {
-			return ctx.R.Success(ctx.Meta, map[string]any{
-				"record_id": id,
-				"files":     files,
-			}, nil)
-		}
-		for _, f := range files {
-			ctx.R.Human("%s (%d bytes)\n", f.Key, f.Size)
-		}
-		return nil
+		return ctx.R.Render(ctx.Meta, map[string]any{
+			"record_id": id,
+			"files":     files,
+		}, func() {
+			for _, f := range files {
+				ctx.R.Human("%s (%d bytes)\n", f.Key, f.Size)
+			}
+		})
 	}),
 }
 
@@ -181,15 +179,12 @@ Use --latest to resolve the latest published version before downloading.`,
 		if err := ctx.Client.DownloadRecord(ctx.Cmd.Context(), id, dest); err != nil {
 			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
 		}
-
-		if ctx.App.JSON {
-			return ctx.R.Success(ctx.Meta, map[string]any{
-				"record_id": id,
-				"dest":      dest,
-			}, nil)
-		}
-		ctx.R.Human("Downloaded files from %s to %s\n", id, dest)
-		return nil
+		return ctx.R.Render(ctx.Meta, map[string]any{
+			"record_id": id,
+			"dest":      dest,
+		}, func() {
+			ctx.R.Human("Downloaded files from %s to %s\n", id, dest)
+		})
 	}),
 }
 
@@ -207,13 +202,11 @@ var filesInfoCmd = &cobra.Command{
 		if err != nil {
 			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
 		}
-		if ctx.App.JSON {
-			return ctx.R.Success(ctx.Meta, f, nil)
-		}
-		ctx.R.Human("Key:      %s\n", f.Key)
-		ctx.R.Human("Size:     %d bytes\n", f.Size)
-		ctx.R.Human("Checksum: %s\n", f.Checksum)
-		return nil
+		return ctx.R.Render(ctx.Meta, f, func() {
+			ctx.R.Human("Key:      %s\n", f.Key)
+			ctx.R.Human("Size:     %d bytes\n", f.Size)
+			ctx.R.Human("Checksum: %s\n", f.Checksum)
+		})
 	}),
 }
 
@@ -244,14 +237,12 @@ without re-uploading them.`,
 		if err := ctx.Client.ImportFiles(ctx.Cmd.Context(), id); err != nil {
 			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
 		}
-		if ctx.App.JSON {
-			return ctx.R.Success(ctx.Meta, map[string]any{
-				"record_id": id,
-				"action":    "files_imported",
-			}, nil)
-		}
-		ctx.R.Human("Imported files from previous version into %s\n", id)
-		return nil
+		return ctx.R.Render(ctx.Meta, map[string]any{
+			"record_id": id,
+			"action":    "files_imported",
+		}, func() {
+			ctx.R.Human("Imported files from previous version into %s\n", id)
+		})
 	}),
 }
 
