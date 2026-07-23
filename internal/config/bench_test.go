@@ -16,17 +16,11 @@ func BenchmarkLoad(b *testing.B) {
 				Token:   "bench-token-abc123",
 				Sandbox: true,
 				BaseURL: "https://sandbox.zenodo.org/api",
-				Endpoints: Endpoints{
-					API: "https://sandbox.zenodo.org/api",
-				},
 			},
 			"production": {
 				Token:   "prod-token-xyz789",
 				Sandbox: false,
 				BaseURL: "https://zenodo.org/api",
-				Endpoints: Endpoints{
-					API: "https://zenodo.org/api",
-				},
 			},
 		},
 	}
@@ -56,17 +50,11 @@ func BenchmarkSave(b *testing.B) {
 				Token:   "bench-token-abc123",
 				Sandbox: true,
 				BaseURL: "https://sandbox.zenodo.org/api",
-				Endpoints: Endpoints{
-					API: "https://sandbox.zenodo.org/api",
-				},
 			},
 			"production": {
 				Token:   "prod-token-xyz789",
 				Sandbox: false,
 				BaseURL: "https://zenodo.org/api",
-				Endpoints: Endpoints{
-					API: "https://zenodo.org/api",
-				},
 			},
 		},
 	}

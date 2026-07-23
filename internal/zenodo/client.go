@@ -14,7 +14,6 @@ import (
 	"time"
 )
 
-// Client communicates with a Zenodo InvenioRDM API.
 type Client struct {
 	BaseURL         string
 	Token           string
@@ -23,7 +22,6 @@ type Client struct {
 	RequestInterval time.Duration
 }
 
-// NewClient creates a Client with sensible defaults.
 func NewClient(baseURL, token string) *Client {
 	return &Client{
 		BaseURL:         strings.TrimRight(baseURL, "/"),
@@ -34,7 +32,6 @@ func NewClient(baseURL, token string) *Client {
 	}
 }
 
-// EnsureLeadingSlash ensures the given path starts with "/".
 func EnsureLeadingSlash(path string) string {
 	if path == "" || path[0] != '/' {
 		return "/" + path
@@ -42,9 +39,7 @@ func EnsureLeadingSlash(path string) string {
 	return path
 }
 
-// APIError is a typed error from the Zenodo InvenioRDM API. It carries the
-// HTTP status code so callers can distinguish 4xx from 5xx without parsing
-// the message string.
+// APIError carries the HTTP status code so callers can distinguish 4xx from 5xx.
 type APIError struct {
 	StatusCode int
 	Message    string
@@ -52,11 +47,6 @@ type APIError struct {
 
 func (e *APIError) Error() string {
 	return fmt.Sprintf("API error (HTTP %d): %s", e.StatusCode, e.Message)
-}
-
-// IsRetryable returns true for 429 and 5xx responses.
-func (e *APIError) IsRetryable() bool {
-	return e.StatusCode == 429 || e.StatusCode >= 500
 }
 
 // ListRecords returns records owned by the authenticated user.
@@ -136,11 +126,8 @@ func (c *Client) NewVersion(ctx context.Context, id string) (*Record, error) {
 	return &rec, nil
 }
 
-// UploadFile uploads a local file to a draft record.
-// It performs the three-step process: init, upload content, commit.
-// The file is streamed from disk on each retry attempt.
+// UploadFile uploads a local file to a draft record via init, content, commit.
 func (c *Client) UploadFile(ctx context.Context, id, filePath string) error {
-	// Validate file exists and is readable before starting the upload process.
 	info, err := os.Stat(filePath)
 	if err != nil {
 		return fmt.Errorf("read file %s: %w", filePath, err)
@@ -151,13 +138,11 @@ func (c *Client) UploadFile(ctx context.Context, id, filePath string) error {
 
 	filename := filepath.Base(filePath)
 
-	// Step 1: Init upload
 	initBody := []map[string]any{{"key": filename}}
 	if err := c.do(ctx, http.MethodPost, "/api/records/"+id+"/draft/files", initBody, nil); err != nil {
 		return fmt.Errorf("init upload: %w", err)
 	}
 
-	// Step 2: Upload content (stream from disk, reopen on retry)
 	openFile := func() (io.ReadCloser, error) {
 		return os.Open(filePath)
 	}
@@ -165,7 +150,6 @@ func (c *Client) UploadFile(ctx context.Context, id, filePath string) error {
 		return fmt.Errorf("upload content: %w", err)
 	}
 
-	// Step 3: Commit
 	if err := c.do(ctx, http.MethodPost, "/api/records/"+id+"/draft/files/"+url.PathEscape(filename)+"/commit", nil, nil); err != nil {
 		return fmt.Errorf("commit file: %w", err)
 	}
@@ -281,7 +265,6 @@ func (c *Client) DownloadRecord(ctx context.Context, id, destdir string) error {
 	return nil
 }
 
-// downloadFile downloads a single file from a record.
 func (c *Client) downloadFile(ctx context.Context, id, destdir, key string) error {
 	downloadURL := fmt.Sprintf("%s/api/records/%s/files/%s/content", c.BaseURL, id, url.PathEscape(key))
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, downloadURL, nil)
@@ -310,7 +293,7 @@ func (c *Client) downloadFile(ctx context.Context, id, destdir, key string) erro
 	_, copyErr := io.Copy(out, resp.Body)
 	closeErr := out.Close()
 	if copyErr != nil {
-		_ = os.Remove(destPath) // clean up incomplete file
+		_ = os.Remove(destPath)
 		return fmt.Errorf("write file %s: %w", destPath, copyErr)
 	}
 	if closeErr != nil {
@@ -320,16 +303,12 @@ func (c *Client) downloadFile(ctx context.Context, id, destdir, key string) erro
 	return nil
 }
 
-// Do sends an HTTP request with JSON body and decodes JSON response into result.
-// This is the public wrapper used by the api command.
+// Do is the public wrapper used by the api command.
 func (c *Client) Do(ctx context.Context, method, path string, body any, result any) error {
 	return c.do(ctx, method, EnsureLeadingSlash(path), body, result)
 }
 
-// do sends an HTTP request with JSON body and decodes JSON response into result.
-// It handles auth, retries, and error parsing.
 func (c *Client) do(ctx context.Context, method, path string, body any, result any) error {
-	// Marshal body once; reuse bytes for each retry attempt.
 	var bodyBytes []byte
 	if body != nil {
 		var err error
@@ -342,8 +321,6 @@ func (c *Client) do(ctx context.Context, method, path string, body any, result a
 	return c.doWithRetry(ctx, method, path, bodyBytes, "application/json", result)
 }
 
-// doWithRetry sends an HTTP request with pre-marshaled body bytes, retrying
-// on 5xx and network errors.
 func (c *Client) doWithRetry(ctx context.Context, method, path string, bodyBytes []byte, contentType string, result any) error {
 	var lastErr error
 	for attempt := 0; attempt <= c.Retries; attempt++ {
@@ -377,7 +354,7 @@ func (c *Client) doWithRetry(ctx context.Context, method, path string, bodyBytes
 			return nil
 		}
 
-		if resp.StatusCode >= 400 && resp.StatusCode < 500 {
+		if resp.StatusCode >= 400 && resp.StatusCode < 500 && resp.StatusCode != 429 {
 			return err
 		}
 		lastErr = err
@@ -386,9 +363,8 @@ func (c *Client) doWithRetry(ctx context.Context, method, path string, bodyBytes
 	return lastErr
 }
 
-// doStreaming sends a request with a streaming body. The openBody function is
-// called for each attempt to produce a fresh reader, so retries work correctly
-// with file handles (which are closed by the HTTP transport after each request).
+// doStreaming calls openBody for each attempt to produce a fresh reader,
+// so retries work with file handles closed by the HTTP transport after each request.
 func (c *Client) doStreaming(ctx context.Context, method, path string, openBody func() (io.ReadCloser, error), result any) error {
 	var lastErr error
 	for attempt := 0; attempt <= c.Retries; attempt++ {
@@ -424,7 +400,7 @@ func (c *Client) doStreaming(ctx context.Context, method, path string, openBody 
 			return nil
 		}
 
-		if resp.StatusCode >= 400 && resp.StatusCode < 500 {
+		if resp.StatusCode >= 400 && resp.StatusCode < 500 && resp.StatusCode != 429 {
 			return err
 		}
 		lastErr = err
@@ -433,7 +409,6 @@ func (c *Client) doStreaming(ctx context.Context, method, path string, openBody 
 	return lastErr
 }
 
-// setAuthHeaders sets the Authorization and Content-Type headers on a request.
 func (c *Client) setAuthHeaders(req *http.Request, contentType string) {
 	req.Header.Set("Authorization", "Bearer "+c.Token)
 	req.Header.Set("Accept", "application/json")
@@ -442,12 +417,10 @@ func (c *Client) setAuthHeaders(req *http.Request, contentType string) {
 	}
 }
 
-// handleResponse reads the response, handles errors, and decodes into result.
 func (c *Client) handleResponse(resp *http.Response, result any) error {
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode >= 400 {
-		// Read error body for error message construction.
 		bodyBytes, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return fmt.Errorf("read error response: %w", err)
@@ -455,7 +428,6 @@ func (c *Client) handleResponse(resp *http.Response, result any) error {
 		return parseAPIError(resp.StatusCode, bodyBytes)
 	}
 
-	// 204 No Content — nothing to decode.
 	if resp.StatusCode == http.StatusNoContent {
 		return nil
 	}
@@ -469,7 +441,6 @@ func (c *Client) handleResponse(resp *http.Response, result any) error {
 	return nil
 }
 
-// parseAPIError extracts a human-readable error message from an API error response.
 func parseAPIError(statusCode int, bodyBytes []byte) error {
 	var apiErr struct {
 		Message string `json:"message"`

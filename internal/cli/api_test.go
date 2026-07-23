@@ -269,21 +269,6 @@ func TestApiReadOnlyBlocksPut(t *testing.T) {
 	}
 }
 
-func TestEnsurePath(t *testing.T) {
-	tests := []struct {
-		input, want string
-	}{
-		{"records/123", "/records/123"},
-		{"/records/123", "/records/123"},
-		{"", "/"},
-	}
-	for _, tc := range tests {
-		if got := ensurePath(tc.input); got != tc.want {
-			t.Errorf("ensurePath(%q) = %q, want %q", tc.input, got, tc.want)
-		}
-	}
-}
-
 func TestPrintJSON(t *testing.T) {
 	var out bytes.Buffer
 	cmd := &cobra.Command{}

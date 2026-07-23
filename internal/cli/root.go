@@ -11,6 +11,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/spf13/cobra"
+
+	"github.com/thedavidweng/zenodo-cli/internal/config"
 )
 
 var rootCmd = newRootCmd()
@@ -63,9 +65,13 @@ func readFlags(cmd *cobra.Command, app *AppContext) {
 
 func applyEnvOverrides(app *AppContext) {
 	if app.ConfigFile == "" {
-		app.ConfigFile = envOr("ZENODO_CONFIG", "")
+		app.ConfigFile = os.Getenv("ZENODO_CONFIG")
 	}
-	app.Profile = envOrDefault(app.Profile, "default", "ZENODO_PROFILE")
+	if app.Profile == "default" {
+		if v := os.Getenv("ZENODO_PROFILE"); v != "" {
+			app.Profile = v
+		}
+	}
 	app.Sandbox = app.Sandbox || envBool("ZENODO_SANDBOX")
 	app.Timeout = envDuration("ZENODO_TIMEOUT", app.Timeout, 5*time.Minute)
 	app.Retries = envInt("ZENODO_RETRIES", app.Retries, 3)
@@ -106,8 +112,7 @@ func registerFlags(root *cobra.Command) {
 }
 
 // Execute runs the root command with signal handling.
-// The first SIGINT/SIGTERM cancels the context for graceful shutdown.
-// A second signal forces immediate exit with code 130.
+// The first SIGINT/SIGTERM cancels the context; a second forces exit 130.
 func Execute() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -115,14 +120,12 @@ func Execute() error {
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 
-	// doneCh signals the goroutine to exit when the command completes normally.
 	doneCh := make(chan struct{})
 
 	go func() {
 		<-sigCh
 		cancel()
 
-		// Wait for either a second signal (force exit) or normal completion.
 		select {
 		case <-sigCh:
 			fmt.Fprintf(os.Stderr, "\ninterrupted\n")
@@ -138,8 +141,6 @@ func Execute() error {
 	return err
 }
 
-// silenceAllCommands recursively propagates SilenceUsage and SilenceErrors
-// to every command in the tree.
 func silenceAllCommands(cmd *cobra.Command) {
 	cmd.SilenceUsage = true
 	cmd.SilenceErrors = true
@@ -152,7 +153,6 @@ func init() {
 	registerSubcommands(rootCmd)
 }
 
-// registerSubcommands attaches all subcommands to the given root.
 func registerSubcommands(root *cobra.Command) {
 	root.AddCommand(versionCmd)
 	root.AddCommand(authCmd)
@@ -164,25 +164,8 @@ func registerSubcommands(root *cobra.Command) {
 	root.AddCommand(apiCmd)
 }
 
-// --- env helpers ---
-
-func envOr(key, fallback string) string {
-	if v := os.Getenv(key); v != "" {
-		return v
-	}
-	return fallback
-}
-
 func envBool(key string) bool {
-	v := os.Getenv(key)
-	return v == "true" || v == "1" || v == "yes"
-}
-
-func envOrDefault(current, defaultVal, key string) string {
-	if current != defaultVal {
-		return current
-	}
-	return envOr(key, current)
+	return config.ParseBool(os.Getenv(key))
 }
 
 func envDuration(key string, current, defaultVal time.Duration) time.Duration {

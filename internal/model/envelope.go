@@ -1,9 +1,7 @@
 package model
 
-// SchemaVersion is the current envelope schema version.
 const SchemaVersion = "2026-06-11"
 
-// Error codes.
 const (
 	ErrValidationFailed     = "VALIDATION_FAILED"
 	ErrAuthRequired         = "AUTH_REQUIRED"
@@ -19,7 +17,6 @@ const (
 	ErrResourceNotFound     = "RESOURCE_NOT_FOUND"
 )
 
-// Envelope is the standard JSON output wrapper for all commands.
 type Envelope struct {
 	OK    bool       `json:"ok"`
 	Data  any        `json:"data,omitempty"`
@@ -27,7 +24,6 @@ type Envelope struct {
 	Meta  Meta       `json:"meta"`
 }
 
-// ErrorBody contains structured error information.
 type ErrorBody struct {
 	Code      string         `json:"code"`
 	Message   string         `json:"message"`
@@ -36,7 +32,6 @@ type ErrorBody struct {
 	Details   map[string]any `json:"details,omitempty"`
 }
 
-// Meta contains request metadata.
 type Meta struct {
 	Command       string   `json:"command,omitempty"`
 	Profile       string   `json:"profile,omitempty"`
@@ -46,7 +41,6 @@ type Meta struct {
 	Warnings      []string `json:"warnings,omitempty"`
 }
 
-// ExitCode maps an error code to a process exit code.
 func ExitCode(code string) int {
 	switch code {
 	case ErrAuthRequired, ErrAuthFailed:
@@ -60,7 +54,6 @@ func ExitCode(code string) int {
 	}
 }
 
-// CommandError is a simple error with a code and message.
 type CommandError struct {
 	Code    string
 	Message string

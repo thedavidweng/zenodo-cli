@@ -2,10 +2,7 @@ package zenodo
 
 import "context"
 
-// API is the interface that Client satisfies. Command handlers depend on
-// this interface rather than the concrete Client, so tests can inject a
-// fake without wiring an HTTP server. The Client struct is the production
-// adapter; a test adapter can implement this interface directly.
+// API is the interface Client satisfies, so tests can inject a fake.
 type API interface {
 	ListRecords(ctx context.Context) (SearchResponse, error)
 	SearchRecords(ctx context.Context, query string) (SearchResponse, error)

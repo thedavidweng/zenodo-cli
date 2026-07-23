@@ -47,7 +47,6 @@ func TestRootCommandSilenceFlags(t *testing.T) {
 func TestRootCommandPersistentPreRunEReadsFlags(t *testing.T) {
 	cmd := newRootCmd()
 
-	// Set some flags
 	cmd.SetArgs([]string{
 		"--config", "/tmp/test.yaml",
 		"--profile", "sb",
@@ -214,22 +213,6 @@ func TestSilenceAllCommands(t *testing.T) {
 	}
 }
 
-func TestEnvOrWithSetValue(t *testing.T) {
-	t.Setenv("TEST_ENV_OR_KEY", "from-env")
-	v := envOr("TEST_ENV_OR_KEY", "fallback")
-	if v != "from-env" {
-		t.Fatalf("envOr = %q, want %q", v, "from-env")
-	}
-}
-
-func TestEnvOrWithFallback(t *testing.T) {
-	t.Setenv("TEST_ENV_OR_MISSING", "")
-	v := envOr("TEST_ENV_OR_MISSING", "fallback")
-	if v != "fallback" {
-		t.Fatalf("envOr = %q, want %q", v, "fallback")
-	}
-}
-
 func TestEnvDurationInvalidValue(t *testing.T) {
 	t.Setenv("TEST_ENV_DURATION_BAD", "not-a-duration")
 	v := envDuration("TEST_ENV_DURATION_BAD", 5*time.Second, 10*time.Second)
@@ -245,15 +228,6 @@ func TestEnvIntInvalidValue(t *testing.T) {
 	// Should fall back to current value since the env is not a valid int
 	if v != 3 {
 		t.Fatalf("envInt = %d, want 3", v)
-	}
-}
-
-func TestEnvOrDefaultCurrentNotDefault(t *testing.T) {
-	// When current != default, don't look at env
-	t.Setenv("TEST_ENV_OR_DEFAULT", "env-val")
-	v := envOrDefault("custom", "default", "TEST_ENV_OR_DEFAULT")
-	if v != "custom" {
-		t.Fatalf("envOrDefault = %q, want %q", v, "custom")
 	}
 }
 

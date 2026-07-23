@@ -31,9 +31,7 @@ func setupFakeZenodoTest(t *testing.T) (*testutil.FakeZenodo, string) {
 profiles:
   test:
     token: %s
-    base_url: https://zenodo.org
-    endpoints:
-      api: %s
+    base_url: %s
 `, testToken, fz.URL())
 	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0600); err != nil {
 		t.Fatalf("write config: %v", err)
@@ -59,10 +57,8 @@ func resetFlags(cmd *cobra.Command) {
 func runCmd(t *testing.T, cfgPath string, cmd *cobra.Command, args []string, appFlags map[string]bool, flagVals map[string]string) (string, error) {
 	t.Helper()
 
-	// Reset local flags to defaults to avoid state leaking between tests.
 	resetFlags(cmd)
 
-	// Set command-local flags.
 	for k, v := range flagVals {
 		_ = cmd.Flags().Set(k, v)
 	}

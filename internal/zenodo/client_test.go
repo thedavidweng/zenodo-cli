@@ -1540,3 +1540,29 @@ func TestDownloadFileCleanupOnError(t *testing.T) {
 		t.Error("partial file should have been removed on error")
 	}
 }
+
+// --- 429 should retry ---
+
+func TestDoRetriesOn429(t *testing.T) {
+	var attempts atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		attempts.Add(1)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(429)
+		_, _ = fmt.Fprint(w, `{"message":"rate limited"}`)
+	}))
+	t.Cleanup(srv.Close)
+
+	client := zenodo.NewClient(srv.URL, "tok")
+	client.Retries = 2
+	client.RequestInterval = 1 * time.Millisecond
+
+	var result map[string]any
+	err := client.Do(context.Background(), "GET", "/api/records", nil, &result)
+	if err == nil {
+		t.Fatal("expected error for 429")
+	}
+	if n := attempts.Load(); n != 3 {
+		t.Fatalf("expected 3 attempts (initial + 2 retries) for 429, got %d", n)
+	}
+}

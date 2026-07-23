@@ -6,14 +6,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Version information, set via ldflags.
 var (
 	Version = "dev"
 	Commit  = "unknown"
 	Date    = "unknown"
 )
 
-// VersionData is the data for the version command JSON output.
 type VersionData struct {
 	Version   string `json:"version"`
 	Commit    string `json:"commit"`

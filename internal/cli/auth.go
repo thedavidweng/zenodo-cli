@@ -68,7 +68,7 @@ Three ways to provide the token (in order of precedence):
 			fmt.Fprintln(os.Stderr, "Required scopes: deposit:write, deposit:actions")
 			fmt.Fprintln(os.Stderr)
 			fmt.Fprint(os.Stderr, "Paste your API token: ")
-			token = readLine()
+			token = readFrom(os.Stdin)
 		}
 		if token == "" {
 			return r.Failure(meta, output.Errorf(model.ErrConfig, "token is required"))
@@ -189,10 +189,6 @@ func isTerminal() bool {
 		return false
 	}
 	return fi.Mode()&os.ModeCharDevice != 0
-}
-
-func readLine() string {
-	return readFrom(os.Stdin)
 }
 
 func readFrom(r io.Reader) string {

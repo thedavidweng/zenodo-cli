@@ -76,7 +76,6 @@ func TestAuthLoginHasTokenFlag(t *testing.T) {
 }
 
 func TestAuthLoginWithTokenFlag(t *testing.T) {
-	// The login command should accept --token and save it
 	var loginCmd *cobra.Command
 	for _, c := range authCmd.Commands() {
 		if c.Name() == "login" {
@@ -88,14 +87,12 @@ func TestAuthLoginWithTokenFlag(t *testing.T) {
 		t.Fatal("login command not found")
 	}
 
-	// Verify the command has a RunE function
 	if loginCmd.RunE == nil {
 		t.Error("login command should have RunE")
 	}
 }
 
 func TestAuthStatusRequiresConfig(t *testing.T) {
-	// Verify status command exists and has RunE
 	var statusCmd *cobra.Command
 	for _, c := range authCmd.Commands() {
 		if c.Name() == "status" {
@@ -364,12 +361,7 @@ profiles:
 		t.Fatalf("write config: %v", err)
 	}
 
-	// Logout with a different profile name
 	_, err := runCmd(t, cfgPath, authSubcmd("logout"), nil, nil, nil)
-	app := &AppContext{ConfigFile: cfgPath, Profile: "nonexistent"}
-	_ = app
-	// We need to set the profile to "nonexistent" - but runCmd uses "test" by default.
-	// Let's just test the happy path with the existing profile.
 	_ = err
 }
 

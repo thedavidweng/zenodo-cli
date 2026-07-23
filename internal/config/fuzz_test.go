@@ -13,8 +13,6 @@ profiles:
     token: "tok123"
     sandbox: false
     base_url: "https://zenodo.org/api"
-    endpoints:
-      api: "https://zenodo.org/api"
 `))
 	f.Add([]byte(`current_profile: sandbox
 profiles:

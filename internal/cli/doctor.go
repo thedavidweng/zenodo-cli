@@ -10,7 +10,6 @@ import (
 	"github.com/thedavidweng/zenodo-cli/internal/output"
 )
 
-// doctorCheck represents a single diagnostic check result.
 type doctorCheck struct {
 	Name    string `json:"name"`
 	OK      bool   `json:"ok"`
@@ -44,7 +43,6 @@ Checks: config file exists, profile is configured, token is set, and API is reac
 			if allOK {
 				return r.Success(meta, map[string]any{"checks": checks}, nil)
 			}
-			// Output the check results as a failure envelope with non-zero exit.
 			errBody := output.ErrorWithDetails(
 				model.ErrConfig,
 				"one or more doctor checks failed",
@@ -76,11 +74,9 @@ Checks: config file exists, profile is configured, token is set, and API is reac
 	},
 }
 
-// doctorRun performs all diagnostic checks and returns the results.
 func doctorRun(ctx context.Context, app *AppContext) []doctorCheck {
 	var checks []doctorCheck
 
-	// 1. Load config file
 	cfgPath := resolveConfigPath(app.ConfigFile)
 	cfg, err := config.Load(cfgPath)
 	if err != nil {
@@ -93,7 +89,6 @@ func doctorRun(ctx context.Context, app *AppContext) []doctorCheck {
 	}
 	checks = append(checks, doctorCheck{Name: "config", OK: true})
 
-	// 2. Check if profile exists
 	profile, err := cfg.GetProfile(app.Profile)
 	if err != nil {
 		checks = append(checks, doctorCheck{
@@ -105,7 +100,6 @@ func doctorRun(ctx context.Context, app *AppContext) []doctorCheck {
 	}
 	checks = append(checks, doctorCheck{Name: "profile", OK: true})
 
-	// 3. Check if token is configured
 	creds := config.CredentialsFromProfileAndEnv(profile)
 	if !creds.IsAuthenticated() {
 		checks = append(checks, doctorCheck{
@@ -117,7 +111,6 @@ func doctorRun(ctx context.Context, app *AppContext) []doctorCheck {
 	}
 	checks = append(checks, doctorCheck{Name: "token", OK: true})
 
-	// 4. Check API connectivity
 	client, err := getClient(app)
 	if err != nil {
 		checks = append(checks, doctorCheck{
