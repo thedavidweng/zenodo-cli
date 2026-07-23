@@ -3,7 +3,6 @@ package cli
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 
 	"github.com/spf13/cobra"
 
@@ -93,31 +92,8 @@ func withPublicClient(command string, fn CmdFunc) func(cmd *cobra.Command, args 
 		r := newRenderer(app, cmd)
 		meta := metaInput(app, command)
 
-		baseURL := config.DefaultBaseURL
-		if app.Sandbox {
-			baseURL = config.DefaultSandboxBaseURL
-		}
-
-		// Try to load config for base_url/endpoint override, but don't fail if missing.
-		token := ""
-		cfgPath := resolveConfigPath(app.ConfigFile)
-		if cfg, err := config.Load(cfgPath); err == nil {
-			if profile := cfg.GetProfileOrNil(app.Profile); profile != nil {
-				creds := config.CredentialsFromProfileAndEnv(profile)
-				if creds.BaseURL != "" {
-					baseURL = creds.BaseURL
-				}
-				// Apply endpoint overrides from config (used for testing).
-				if profile.Endpoints.API != "" {
-					baseURL = profile.Endpoints.API
-				}
-				// Use token if available (public endpoints don't require it,
-				// but sending it is harmless and helps with test servers).
-				token = creds.Token
-			}
-		}
-
-		client := zenodo.NewClient(baseURL, token)
+		cc, _ := config.ResolveClientConfig(app.ConfigFile, app.Profile, app.Sandbox, false)
+		client := zenodo.NewClient(cc.BaseURL, cc.Token)
 		client.Retries = app.Retries
 		client.HTTPClient.Timeout = app.Timeout
 
@@ -127,34 +103,13 @@ func withPublicClient(command string, fn CmdFunc) func(cmd *cobra.Command, args 
 
 // getClient creates a Zenodo client from the current app context and config.
 func getClient(app *AppContext) (*zenodo.Client, error) {
-	cfgPath := resolveConfigPath(app.ConfigFile)
-	cfg, err := config.Load(cfgPath)
+	cc, err := config.ResolveClientConfig(app.ConfigFile, app.Profile, app.Sandbox, true)
 	if err != nil {
-		return nil, fmt.Errorf("not configured. Run 'zenodo auth login' to get started")
+		return nil, err
 	}
-
-	profile, err := cfg.GetProfile(app.Profile)
-	if err != nil {
-		return nil, fmt.Errorf("not authenticated. Run 'zenodo auth login' to get started")
-	}
-
-	creds := config.CredentialsFromProfileAndEnv(profile)
-	// CLI --sandbox flag overrides profile setting
-	if app.Sandbox {
-		creds.Sandbox = true
-		if creds.BaseURL == config.DefaultBaseURL {
-			creds.BaseURL = config.DefaultSandboxBaseURL
-		}
-	}
-	client := zenodo.NewClient(creds.BaseURL, creds.Token)
+	client := zenodo.NewClient(cc.BaseURL, cc.Token)
 	client.Retries = app.Retries
 	client.HTTPClient.Timeout = app.Timeout
-
-	// Apply endpoint overrides from config (used for testing)
-	if profile.Endpoints.API != "" {
-		client.BaseURL = profile.Endpoints.API
-	}
-
 	return client, nil
 }
 
