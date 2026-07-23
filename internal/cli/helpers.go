@@ -40,7 +40,7 @@ type CmdContext struct {
 	App    *AppContext
 	Cmd    *cobra.Command
 	Args   []string
-	Client *zenodo.Client
+	Client zenodo.API
 	R      output.Renderer
 	Meta   output.RuntimeMetaInput
 	Gate   *Gate
