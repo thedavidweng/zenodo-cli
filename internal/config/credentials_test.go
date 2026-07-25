@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"strings"
 	"testing"
 )
 
@@ -26,7 +27,10 @@ func TestCredentialsFromProfile(t *testing.T) {
 		BaseURL: "https://sandbox.zenodo.org/api",
 	}
 
-	c := CredentialsFromProfileAndEnv(p)
+	c, err := CredentialsFromProfileAndEnv(p)
+	if err != nil {
+		t.Fatalf("CredentialsFromProfileAndEnv: %v", err)
+	}
 	if c.Token != "profile-token" {
 		t.Errorf("token = %q, want profile-token", c.Token)
 	}
@@ -58,7 +62,10 @@ func TestCredentialsEnvOverridesProfile(t *testing.T) {
 		BaseURL: "https://zenodo.org/api",
 	}
 
-	c := CredentialsFromProfileAndEnv(p)
+	c, err := CredentialsFromProfileAndEnv(p)
+	if err != nil {
+		t.Fatalf("CredentialsFromProfileAndEnv: %v", err)
+	}
 	if c.Token != "env-token" {
 		t.Errorf("token = %q, want env-token", c.Token)
 	}
@@ -86,7 +93,10 @@ func TestCredentialsEnvOnly(t *testing.T) {
 
 	p := &Profile{}
 
-	c := CredentialsFromProfileAndEnv(p)
+	c, err := CredentialsFromProfileAndEnv(p)
+	if err != nil {
+		t.Fatalf("CredentialsFromProfileAndEnv: %v", err)
+	}
 	if c.Token != "env-token" {
 		t.Errorf("token = %q, want env-token", c.Token)
 	}
@@ -113,7 +123,10 @@ func TestCredentialsDefaults(t *testing.T) {
 	mustUnsetenv(t, "ZENODO_API_URL")
 
 	p := &Profile{}
-	c := CredentialsFromProfileAndEnv(p)
+	c, err := CredentialsFromProfileAndEnv(p)
+	if err != nil {
+		t.Fatalf("CredentialsFromProfileAndEnv: %v", err)
+	}
 	if c.Sandbox {
 		t.Error("expected sandbox=false (default)")
 	}
@@ -134,7 +147,10 @@ func TestCredentialsSandboxDefault(t *testing.T) {
 	mustUnsetenv(t, "ZENODO_API_URL")
 
 	p := &Profile{Sandbox: true}
-	c := CredentialsFromProfileAndEnv(p)
+	c, err := CredentialsFromProfileAndEnv(p)
+	if err != nil {
+		t.Fatalf("CredentialsFromProfileAndEnv: %v", err)
+	}
 	if !c.Sandbox {
 		t.Error("expected sandbox=true")
 	}
@@ -172,9 +188,58 @@ func TestCredentialsSandboxEnvBoolParsing(t *testing.T) {
 	}
 	for _, tt := range tests {
 		mustSetenv(t, "ZENODO_SANDBOX", tt.envVal)
-		c := CredentialsFromProfileAndEnv(&Profile{})
+		c, err := CredentialsFromProfileAndEnv(&Profile{})
+		if err != nil {
+			t.Fatalf("CredentialsFromProfileAndEnv: %v", err)
+		}
 		if c.Sandbox != tt.want {
 			t.Errorf("ZENODO_SANDBOX=%q: got sandbox=%v, want %v", tt.envVal, c.Sandbox, tt.want)
 		}
+	}
+}
+
+func TestCredentialsEnvIndirectionResolves(t *testing.T) {
+	origToken := os.Getenv("ZENODO_TOKEN")
+	defer func() { _ = os.Setenv("ZENODO_TOKEN", origToken) }()
+	mustUnsetenv(t, "ZENODO_TOKEN")
+
+	mustSetenv(t, "ZENODO_CI_TOKEN", "resolved-secret")
+	defer mustUnsetenv(t, "ZENODO_CI_TOKEN")
+
+	c, err := CredentialsFromProfileAndEnv(&Profile{Token: "env:ZENODO_CI_TOKEN"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if c.Token != "resolved-secret" {
+		t.Errorf("token = %q, want resolved-secret", c.Token)
+	}
+}
+
+func TestCredentialsEnvIndirectionUnsetErrors(t *testing.T) {
+	origToken := os.Getenv("ZENODO_TOKEN")
+	defer func() { _ = os.Setenv("ZENODO_TOKEN", origToken) }()
+	mustUnsetenv(t, "ZENODO_TOKEN")
+	mustUnsetenv(t, "ZENODO_MISSING_TOKEN")
+
+	_, err := CredentialsFromProfileAndEnv(&Profile{Token: "env:ZENODO_MISSING_TOKEN"})
+	if err == nil {
+		t.Fatal("expected error when env var is unset, got nil")
+	}
+	if !strings.Contains(err.Error(), "ZENODO_MISSING_TOKEN") {
+		t.Errorf("error %q should name the missing env var", err)
+	}
+}
+
+func TestCredentialsNoIndirectionForPlainToken(t *testing.T) {
+	origToken := os.Getenv("ZENODO_TOKEN")
+	defer func() { _ = os.Setenv("ZENODO_TOKEN", origToken) }()
+	mustUnsetenv(t, "ZENODO_TOKEN")
+
+	c, err := CredentialsFromProfileAndEnv(&Profile{Token: "plain-literal-token"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if c.Token != "plain-literal-token" {
+		t.Errorf("token = %q, want plain-literal-token", c.Token)
 	}
 }

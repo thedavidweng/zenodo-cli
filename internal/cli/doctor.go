@@ -100,7 +100,15 @@ func doctorRun(ctx context.Context, app *AppContext) []doctorCheck {
 	}
 	checks = append(checks, doctorCheck{Name: "profile", OK: true})
 
-	creds := config.CredentialsFromProfileAndEnv(profile)
+	creds, err := config.CredentialsFromProfileAndEnv(profile)
+	if err != nil {
+		checks = append(checks, doctorCheck{
+			Name:    "token",
+			OK:      false,
+			Message: err.Error(),
+		})
+		return checks
+	}
 	if !creds.IsAuthenticated() {
 		checks = append(checks, doctorCheck{
 			Name:    "token",

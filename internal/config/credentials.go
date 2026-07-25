@@ -19,7 +19,10 @@ type Credentials struct {
 
 // CredentialsFromProfileAndEnv merges a profile with env overrides.
 // Env vars take precedence: ZENODO_TOKEN, ZENODO_SANDBOX, ZENODO_API_URL.
-func CredentialsFromProfileAndEnv(p *Profile) Credentials {
+//
+// A token of the form "env:NAME" is secret indirection: it is replaced by the
+// value of environment variable NAME, and it is an error if NAME is unset.
+func CredentialsFromProfileAndEnv(p *Profile) (Credentials, error) {
 	c := Credentials{
 		Token:   p.Token,
 		Sandbox: p.Sandbox,
@@ -36,6 +39,12 @@ func CredentialsFromProfileAndEnv(p *Profile) Credentials {
 		c.BaseURL = v
 	}
 
+	token, err := resolveSecret(c.Token)
+	if err != nil {
+		return Credentials{}, err
+	}
+	c.Token = token
+
 	if c.BaseURL == "" {
 		if c.Sandbox {
 			c.BaseURL = DefaultSandboxBaseURL
@@ -44,7 +53,23 @@ func CredentialsFromProfileAndEnv(p *Profile) Credentials {
 		}
 	}
 
-	return c
+	return c, nil
+}
+
+// resolveSecret expands the "env:NAME" indirection form: a value of "env:NAME"
+// is replaced by the value of environment variable NAME, returning an error if
+// NAME is unset. Any other value is returned unchanged.
+func resolveSecret(value string) (string, error) {
+	const prefix = "env:"
+	if !strings.HasPrefix(value, prefix) {
+		return value, nil
+	}
+	name := strings.TrimPrefix(value, prefix)
+	resolved := os.Getenv(name)
+	if resolved == "" {
+		return "", fmt.Errorf("token references env var %q which is not set", name)
+	}
+	return resolved, nil
 }
 
 func (c Credentials) IsAuthenticated() bool {
@@ -77,7 +102,10 @@ func ResolveClientConfig(configFile, profileName string, sandbox, requireProfile
 		return fallbackCredentials(sandbox), nil
 	}
 
-	creds := CredentialsFromProfileAndEnv(profile)
+	creds, err := CredentialsFromProfileAndEnv(profile)
+	if err != nil {
+		return Credentials{}, err
+	}
 
 	// CLI sandbox override only swaps when base URL is the default.
 	if sandbox {

@@ -26,6 +26,27 @@ ZENODO_SANDBOX      Set 1/true/yes to use sandbox
 ZENODO_API_URL      Override API base URL
 ```
 
+### Secret Indirection (`env:NAME`)
+
+Rather than storing a plaintext token in the config file, set the profile's
+`token` to `env:NAME`. At load time the value is replaced by the environment
+variable `NAME`; loading fails with a clear error if `NAME` is unset.
+
+```yaml
+profiles:
+  default:
+    token: "env:ZENODO_TOKEN_PROD"
+```
+
+```bash
+export ZENODO_TOKEN_PROD="your-real-token"
+zenodo records list
+```
+
+This keeps the on-disk config free of secrets while remaining fully headless —
+no keychain prompt, no interactive unlock. The config file is still written
+with `0600` permissions. See [ADR 0004](adr/0004-secrets-storage.md).
+
 ### Check Status
 
 ```bash

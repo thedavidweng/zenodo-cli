@@ -42,6 +42,10 @@ Every command supports `--json` for structured output. Responses use a consisten
 }
 ```
 
+## Meta Fields
+
+`meta` is always present. Core fields: `command`, `profile`, `duration_ms`, `schema_version`, and `request_id`. `meta.warnings` is an optional array of non-fatal warning strings, omitted when empty.
+
 ## Output Modifiers
 
 - `--pretty` — indented JSON
