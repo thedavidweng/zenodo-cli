@@ -15,7 +15,11 @@ func ExampleCredentialsFromProfileAndEnv() {
 		Token:   "my-token",
 		Sandbox: true,
 	}
-	creds := CredentialsFromProfileAndEnv(p)
+	creds, err := CredentialsFromProfileAndEnv(p)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
 	fmt.Println("Token:", creds.Token)
 	fmt.Println("Sandbox:", creds.Sandbox)
 	fmt.Println("BaseURL:", creds.BaseURL)

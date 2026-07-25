@@ -117,7 +117,10 @@ var authStatusCmd = &cobra.Command{
 			))
 		}
 
-		creds := config.CredentialsFromProfileAndEnv(profile)
+		creds, err := config.CredentialsFromProfileAndEnv(profile)
+		if err != nil {
+			return r.Failure(meta, output.Errorf(model.ErrConfig, "%v", err))
+		}
 		if !creds.IsAuthenticated() {
 			return r.Failure(meta, output.Errorf(model.ErrAuthRequired, "no token configured"))
 		}
