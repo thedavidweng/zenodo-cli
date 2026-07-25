@@ -201,7 +201,7 @@ profiles:
     token: status-token
     base_url: https://zenodo.org
 `
-	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0600); err != nil {
+	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0o600); err != nil {
 		t.Fatalf("write config: %v", err)
 	}
 
@@ -234,7 +234,7 @@ profiles:
     token: some-token
     base_url: https://zenodo.org
 `
-	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0600); err != nil {
+	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0o600); err != nil {
 		t.Fatalf("write config: %v", err)
 	}
 
@@ -276,7 +276,7 @@ profiles:
     token: ""
     base_url: https://zenodo.org
 `
-	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0600); err != nil {
+	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0o600); err != nil {
 		t.Fatalf("write config: %v", err)
 	}
 
@@ -295,7 +295,7 @@ profiles:
     token: logout-token
     base_url: https://zenodo.org
 `
-	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0600); err != nil {
+	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0o600); err != nil {
 		t.Fatalf("write config: %v", err)
 	}
 
@@ -326,7 +326,7 @@ profiles:
     token: dryrun-token
     base_url: https://zenodo.org
 `
-	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0600); err != nil {
+	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0o600); err != nil {
 		t.Fatalf("write config: %v", err)
 	}
 
@@ -357,7 +357,7 @@ profiles:
     token: some-token
     base_url: https://zenodo.org
 `
-	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0600); err != nil {
+	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0o600); err != nil {
 		t.Fatalf("write config: %v", err)
 	}
 

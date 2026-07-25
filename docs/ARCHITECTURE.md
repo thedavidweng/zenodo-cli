@@ -33,10 +33,10 @@ Cobra command (internal/cli/)
   │     ├─ Dry-run → plan output, no execution
   │     └─ Allowed → continue
   │
-  ├─ Calls Zenodo API via client.Get() / client.Post() / client.Put()
+  ├─ Calls Zenodo API via typed client methods or raw Do()
   │     │
   │     ├─ Bearer token auth
-  │     ├─ Retry on 429/5xx (exponential backoff)
+  │     ├─ Retry on 429/5xx/network (exponential backoff, Retry-After capped)
   │     └─ Response parsing + error normalization
   │
   ├─ Renders output
@@ -50,12 +50,12 @@ Cobra command (internal/cli/)
 
 | File | Responsibility |
 |------|---------------|
-| `client.go` | Client struct, constructor, HTTP methods (Get/Post/Put/Delete), retry logic |
+| `client.go` | Client struct, constructor, typed API methods, generic `Do()`, retry logic |
 | `types.go` | API response types: Record, RecordMetadata, Creator, ResourceType, RecordFile, SearchResponse |
 
 Key design decisions:
-- All API calls go through typed HTTP methods with automatic JSON handling
-- Automatic retry with exponential backoff on 429 and 5xx responses
+- All API calls go through one retry loop with automatic JSON handling; the raw `Do()` method backs the `api` escape hatch (see [ADR-0003](adr/0003-raw-api-escape-hatch.md))
+- Retry with exponential backoff on 429/5xx/network, honoring `Retry-After` on 429 (see [ADR-0001](adr/0001-retry-strategy.md))
 - Bearer token authentication via `Authorization` header
 - API base URL is configurable (sandbox vs production)
 - Tokens are never logged or printed
@@ -83,12 +83,10 @@ Credential resolution priority:
 
 ## Safety System
 
-Every mutation command passes through a safety gate before execution.
-
-Risk levels:
-- **read** — no mutation, always allowed
-- **medium-write** — blocked by `--read-only`, supports `--dry-run`
-- **high-write** — blocked by `--read-only`, requires `--confirm`
+Every mutation command passes through a safety gate before execution. The
+three risk tiers (read, medium-write, high-write) and their flag semantics are
+recorded in [ADR-0002](adr/0002-three-tier-safety-gates.md); the user-facing
+rules are in [Safety Model](safety.md).
 
 ## Output System (`internal/output/`)
 
@@ -96,7 +94,6 @@ Every command produces output through the `Renderer`:
 
 - **JSON mode** (`--json`): writes a standard envelope to stdout
 - **Human mode**: writes formatted text to stdout
-- **Events** (`--events`): writes NDJSON progress events to stderr
 - **Errors**: always written to stderr in human mode; included in JSON envelope
 
 ## Testing

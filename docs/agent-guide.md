@@ -50,10 +50,6 @@ Errors include machine-readable codes:
 
 Network timeouts, HTTP 429/5xx, and temporary Zenodo errors are marked `retryable: true`.
 
-## Events Stream
-
-Use `--events` for NDJSON progress on stderr while getting JSON result on stdout.
-
 ## Safety
 
 For mutations in automation:

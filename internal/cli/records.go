@@ -108,7 +108,6 @@ Tries to fetch the draft first; if none exists, falls back to the published reco
 	Args: cobra.ExactArgs(1),
 	RunE: withAuth("records.show", func(ctx *CmdContext) error {
 		id := ctx.Args[0]
-		// Try draft first, fall back to published
 		rec, err := ctx.Client.GetDraft(ctx.Cmd.Context(), id)
 		if err != nil {
 			rec, err = ctx.Client.GetRecord(ctx.Cmd.Context(), id)

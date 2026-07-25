@@ -20,20 +20,20 @@ const testToken = "test-token-abc123"
 
 // setupFakeZenodoTest starts a FakeZenodo server, writes a config file pointing
 // to it, and returns the FakeZenodo instance and config path.
-func setupFakeZenodoTest(t *testing.T) (*testutil.FakeZenodo, string) {
+func setupFakeZenodoTest(t *testing.T) (fz *testutil.FakeZenodo, cfgPath string) {
 	t.Helper()
-	fz := testutil.NewFakeZenodo(testToken)
+	fz = testutil.NewFakeZenodo(testToken)
 	t.Cleanup(func() { fz.Close() })
 
 	cfgDir := t.TempDir()
-	cfgPath := filepath.Join(cfgDir, "config.yaml")
+	cfgPath = filepath.Join(cfgDir, "config.yaml")
 	cfgContent := fmt.Sprintf(`current_profile: test
 profiles:
   test:
     token: %s
     base_url: %s
 `, testToken, fz.URL())
-	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0600); err != nil {
+	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0o600); err != nil {
 		t.Fatalf("write config: %v", err)
 	}
 	return fz, cfgPath

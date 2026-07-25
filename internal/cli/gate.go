@@ -8,9 +8,9 @@ import (
 type RiskTier int
 
 const (
-	RiskRead        RiskTier = iota // no mutation, always allowed
-	RiskMediumWrite                 // blocked by --read-only, supports --dry-run
-	RiskHighWrite                   // irreversible: blocked by --read-only, requires --confirm
+	RiskRead RiskTier = iota
+	RiskMediumWrite
+	RiskHighWrite
 )
 
 type Plan struct {

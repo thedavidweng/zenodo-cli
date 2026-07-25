@@ -28,6 +28,9 @@ checksum:
   name_template: "checksums.txt"
   algorithm: sha256
 
+changelog:
+  disable: true
+
 release:
   mode: append
   github:
@@ -48,6 +51,19 @@ sboms:
   - artifacts: archive
     documents:
       - "${artifact}.sbom.json"
+
+nfpms:
+  - package_name: zenodo
+    vendor: thedavidweng
+    maintainer: thedavidweng <noreply@github.com>
+    homepage: https://github.com/thedavidweng/zenodo-cli
+    description: "Agent-friendly CLI for Zenodo deposit management, file upload/download, and InvenioRDM API access"
+    license: Apache-2.0
+    formats:
+      - deb
+      - rpm
+      - apk
+    bindir: /usr/bin
 
 brews:
   - name: zenodo

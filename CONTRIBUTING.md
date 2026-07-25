@@ -10,25 +10,19 @@ go build ./cmd/zenodo
 go test ./...
 ```
 
-Requires Go 1.26.3 or later.
+Requires Go 1.26.4 or later.
 
 ## Development
 
 ```bash
-# Build
-make build
+# Run all gates: fmt, build, test, lint, conventions
+mise run check
 
-# Run tests
-make test
-
-# Format, vet, and test
-make lint
-
-# Format only
-make fmt
-
-# Vet only
-make vet
+# Individual tasks
+mise run build
+mise run test
+mise run lint
+mise run fmt
 ```
 
 ## Project Structure
@@ -78,7 +72,7 @@ The fake Zenodo server (`internal/testutil/`) provides a complete mock for integ
 1. Fork the repository
 2. Create a feature branch
 3. Write tests for new functionality
-4. Ensure `make lint` passes
+4. Ensure `mise run check` passes
 5. Submit a pull request
 
 ## License

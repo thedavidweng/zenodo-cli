@@ -69,7 +69,7 @@ func (f *fakeAPI) ImportFiles(ctx context.Context, id string) error { return nil
 func (f *fakeAPI) ResolveLatest(ctx context.Context, id string) (string, error) {
 	return id, nil
 }
-func (f *fakeAPI) Do(ctx context.Context, method, path string, body any, result any) error {
+func (f *fakeAPI) Do(ctx context.Context, method, path string, body, result any) error {
 	return nil
 }
 

@@ -69,8 +69,8 @@ func ResolveClientConfig(configFile, profileName string, sandbox, requireProfile
 		return fallbackCredentials(sandbox), nil
 	}
 
-	profile := cfg.GetProfileOrNil(profileName)
-	if profile == nil {
+	profile, err := cfg.GetProfile(profileName)
+	if err != nil {
 		if requireProfile {
 			return Credentials{}, fmt.Errorf("not authenticated. Run 'zenodo auth login' to get started")
 		}

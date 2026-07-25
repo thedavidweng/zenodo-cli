@@ -1,6 +1,7 @@
 package zenodo_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -11,7 +12,6 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
-	"time"
 
 	"github.com/thedavidweng/zenodo-cli/internal/testutil"
 	"github.com/thedavidweng/zenodo-cli/internal/zenodo"
@@ -19,12 +19,12 @@ import (
 
 const testToken = "test-token-abc123"
 
-func newClientAndServer(t *testing.T) (*testutil.FakeZenodo, *zenodo.Client) {
+func newClientAndServer(t *testing.T) *zenodo.Client {
 	t.Helper()
 	fz := testutil.NewFakeZenodo(testToken)
 	client := zenodo.NewClient(fz.URL(), testToken)
 	t.Cleanup(func() { fz.Close() })
-	return fz, client
+	return client
 }
 
 // --- NewClient ---
@@ -48,7 +48,7 @@ func TestNewClient(t *testing.T) {
 // --- CreateRecord ---
 
 func TestCreateRecord(t *testing.T) {
-	_, client := newClientAndServer(t)
+	client := newClientAndServer(t)
 	ctx := context.Background()
 
 	meta := zenodo.RecordMetadata{
@@ -81,7 +81,7 @@ func TestCreateRecord(t *testing.T) {
 // --- GetRecord ---
 
 func TestGetRecord(t *testing.T) {
-	_, client := newClientAndServer(t)
+	client := newClientAndServer(t)
 	ctx := context.Background()
 
 	// Create and publish a record via the fake server directly
@@ -116,7 +116,7 @@ func TestGetRecord(t *testing.T) {
 }
 
 func TestGetRecordNotFound(t *testing.T) {
-	_, client := newClientAndServer(t)
+	client := newClientAndServer(t)
 	ctx := context.Background()
 
 	_, err := client.GetRecord(ctx, "999999")
@@ -128,7 +128,7 @@ func TestGetRecordNotFound(t *testing.T) {
 // --- GetDraft ---
 
 func TestGetDraft(t *testing.T) {
-	_, client := newClientAndServer(t)
+	client := newClientAndServer(t)
 	ctx := context.Background()
 
 	meta := zenodo.RecordMetadata{
@@ -154,44 +154,10 @@ func TestGetDraft(t *testing.T) {
 	}
 }
 
-// --- UpdateDraft ---
-
-func TestUpdateDraft(t *testing.T) {
-	_, client := newClientAndServer(t)
-	ctx := context.Background()
-
-	meta := zenodo.RecordMetadata{
-		Title:           "Original Title",
-		Description:     "Original desc",
-		PublicationDate: "2026-01-01",
-		ResourceType:    zenodo.ResourceType{Type: "dataset"},
-	}
-	created, err := client.CreateRecord(ctx, meta)
-	if err != nil {
-		t.Fatalf("CreateRecord: %v", err)
-	}
-
-	updated, err := client.UpdateDraft(ctx, created.ID, zenodo.RecordMetadata{
-		Title:           "Updated Title",
-		Description:     "Updated desc",
-		PublicationDate: "2026-06-01",
-		ResourceType:    zenodo.ResourceType{Type: "publication"},
-	})
-	if err != nil {
-		t.Fatalf("UpdateDraft: %v", err)
-	}
-	if updated.Metadata.Title != "Updated Title" {
-		t.Fatalf("Title = %q, want %q", updated.Metadata.Title, "Updated Title")
-	}
-	if updated.Metadata.Description != "Updated desc" {
-		t.Fatalf("Description = %q, want %q", updated.Metadata.Description, "Updated desc")
-	}
-}
-
 // --- DeleteDraft ---
 
 func TestDeleteDraft(t *testing.T) {
-	_, client := newClientAndServer(t)
+	client := newClientAndServer(t)
 	ctx := context.Background()
 
 	meta := zenodo.RecordMetadata{
@@ -220,7 +186,7 @@ func TestDeleteDraft(t *testing.T) {
 // --- PublishDraft ---
 
 func TestPublishDraft(t *testing.T) {
-	_, client := newClientAndServer(t)
+	client := newClientAndServer(t)
 	ctx := context.Background()
 
 	meta := zenodo.RecordMetadata{
@@ -246,7 +212,7 @@ func TestPublishDraft(t *testing.T) {
 // --- ListRecords ---
 
 func TestListRecords(t *testing.T) {
-	_, client := newClientAndServer(t)
+	client := newClientAndServer(t)
 	ctx := context.Background()
 
 	// Create a couple of records
@@ -274,7 +240,7 @@ func TestListRecords(t *testing.T) {
 // --- SearchRecords ---
 
 func TestSearchRecords(t *testing.T) {
-	_, client := newClientAndServer(t)
+	client := newClientAndServer(t)
 	ctx := context.Background()
 
 	_, err := client.CreateRecord(ctx, zenodo.RecordMetadata{
@@ -312,7 +278,7 @@ func TestSearchRecords(t *testing.T) {
 // --- NewVersion ---
 
 func TestNewVersion(t *testing.T) {
-	_, client := newClientAndServer(t)
+	client := newClientAndServer(t)
 	ctx := context.Background()
 
 	meta := zenodo.RecordMetadata{
@@ -344,7 +310,7 @@ func TestNewVersion(t *testing.T) {
 // --- UploadFile ---
 
 func TestUploadFile(t *testing.T) {
-	_, client := newClientAndServer(t)
+	client := newClientAndServer(t)
 	ctx := context.Background()
 
 	meta := zenodo.RecordMetadata{
@@ -361,7 +327,7 @@ func TestUploadFile(t *testing.T) {
 	// Create a temp file to upload
 	tmpDir := t.TempDir()
 	tmpFile := filepath.Join(tmpDir, "data.csv")
-	if err := os.WriteFile(tmpFile, []byte("col1,col2\n1,2\n3,4\n"), 0644); err != nil {
+	if err := os.WriteFile(tmpFile, []byte("col1,col2\n1,2\n3,4\n"), 0o644); err != nil {
 		t.Fatalf("write temp file: %v", err)
 	}
 
@@ -390,7 +356,7 @@ func TestAuthFailure(t *testing.T) {
 // --- DownloadRecord ---
 
 func TestDownloadRecord(t *testing.T) {
-	_, client := newClientAndServer(t)
+	client := newClientAndServer(t)
 	ctx := context.Background()
 
 	// Create a record with a file
@@ -409,7 +375,7 @@ func TestDownloadRecord(t *testing.T) {
 	tmpDir := t.TempDir()
 	tmpFile := filepath.Join(tmpDir, "upload.txt")
 	content := []byte("hello world\n")
-	if err := os.WriteFile(tmpFile, content, 0644); err != nil {
+	if err := os.WriteFile(tmpFile, content, 0o644); err != nil {
 		t.Fatalf("write temp file: %v", err)
 	}
 
@@ -437,7 +403,7 @@ func TestDownloadRecord(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read downloaded file: %v", err)
 	}
-	if string(data) != string(content) {
+	if !bytes.Equal(data, content) {
 		t.Fatalf("downloaded content = %q, want %q", data, content)
 	}
 }
@@ -445,7 +411,7 @@ func TestDownloadRecord(t *testing.T) {
 // --- ListFiles ---
 
 func TestListFiles(t *testing.T) {
-	_, client := newClientAndServer(t)
+	client := newClientAndServer(t)
 	ctx := context.Background()
 
 	rec, err := client.CreateRecord(ctx, zenodo.RecordMetadata{
@@ -458,7 +424,7 @@ func TestListFiles(t *testing.T) {
 
 	tmpDir := t.TempDir()
 	tmpFile := filepath.Join(tmpDir, "listme.txt")
-	if err := os.WriteFile(tmpFile, []byte("content"), 0644); err != nil {
+	if err := os.WriteFile(tmpFile, []byte("content"), 0o644); err != nil {
 		t.Fatalf("write: %v", err)
 	}
 	if err := client.UploadFile(ctx, rec.ID, tmpFile); err != nil {
@@ -480,7 +446,7 @@ func TestListFiles(t *testing.T) {
 // --- DeleteFile ---
 
 func TestDeleteFile(t *testing.T) {
-	_, client := newClientAndServer(t)
+	client := newClientAndServer(t)
 	ctx := context.Background()
 
 	rec, err := client.CreateRecord(ctx, zenodo.RecordMetadata{
@@ -493,7 +459,7 @@ func TestDeleteFile(t *testing.T) {
 
 	tmpDir := t.TempDir()
 	tmpFile := filepath.Join(tmpDir, "deleteme.txt")
-	if err := os.WriteFile(tmpFile, []byte("bye"), 0644); err != nil {
+	if err := os.WriteFile(tmpFile, []byte("bye"), 0o644); err != nil {
 		t.Fatalf("write: %v", err)
 	}
 	if err := client.UploadFile(ctx, rec.ID, tmpFile); err != nil {
@@ -516,7 +482,7 @@ func TestDeleteFile(t *testing.T) {
 // --- ListPublishedFiles ---
 
 func TestListPublishedFiles(t *testing.T) {
-	_, client := newClientAndServer(t)
+	client := newClientAndServer(t)
 	ctx := context.Background()
 
 	rec, err := client.CreateRecord(ctx, zenodo.RecordMetadata{
@@ -529,7 +495,7 @@ func TestListPublishedFiles(t *testing.T) {
 
 	tmpDir := t.TempDir()
 	tmpFile := filepath.Join(tmpDir, "pub.txt")
-	if err := os.WriteFile(tmpFile, []byte("pub"), 0644); err != nil {
+	if err := os.WriteFile(tmpFile, []byte("pub"), 0o644); err != nil {
 		t.Fatalf("write: %v", err)
 	}
 	if err := client.UploadFile(ctx, rec.ID, tmpFile); err != nil {
@@ -556,7 +522,7 @@ func TestListPublishedFiles(t *testing.T) {
 // --- GetFile ---
 
 func TestGetFile(t *testing.T) {
-	_, client := newClientAndServer(t)
+	client := newClientAndServer(t)
 	ctx := context.Background()
 
 	rec, err := client.CreateRecord(ctx, zenodo.RecordMetadata{
@@ -569,7 +535,7 @@ func TestGetFile(t *testing.T) {
 
 	tmpDir := t.TempDir()
 	tmpFile := filepath.Join(tmpDir, "info.txt")
-	if err := os.WriteFile(tmpFile, []byte("info data"), 0644); err != nil {
+	if err := os.WriteFile(tmpFile, []byte("info data"), 0o644); err != nil {
 		t.Fatalf("write: %v", err)
 	}
 	if err := client.UploadFile(ctx, rec.ID, tmpFile); err != nil {
@@ -588,7 +554,7 @@ func TestGetFile(t *testing.T) {
 // --- ListVersions ---
 
 func TestListVersions(t *testing.T) {
-	_, client := newClientAndServer(t)
+	client := newClientAndServer(t)
 	ctx := context.Background()
 
 	rec, err := client.CreateRecord(ctx, zenodo.RecordMetadata{
@@ -615,7 +581,7 @@ func TestListVersions(t *testing.T) {
 // --- ReserveDOI ---
 
 func TestReserveDOI(t *testing.T) {
-	_, client := newClientAndServer(t)
+	client := newClientAndServer(t)
 	ctx := context.Background()
 
 	rec, err := client.CreateRecord(ctx, zenodo.RecordMetadata{
@@ -638,7 +604,7 @@ func TestReserveDOI(t *testing.T) {
 // --- SubmitToCommunity ---
 
 func TestSubmitToCommunity(t *testing.T) {
-	_, client := newClientAndServer(t)
+	client := newClientAndServer(t)
 	ctx := context.Background()
 
 	rec, err := client.CreateRecord(ctx, zenodo.RecordMetadata{
@@ -658,7 +624,7 @@ func TestSubmitToCommunity(t *testing.T) {
 // --- ImportFiles ---
 
 func TestImportFiles(t *testing.T) {
-	_, client := newClientAndServer(t)
+	client := newClientAndServer(t)
 	ctx := context.Background()
 
 	rec, err := client.CreateRecord(ctx, zenodo.RecordMetadata{
@@ -678,7 +644,7 @@ func TestImportFiles(t *testing.T) {
 // --- ListRequests ---
 
 func TestListRequests(t *testing.T) {
-	_, client := newClientAndServer(t)
+	client := newClientAndServer(t)
 	ctx := context.Background()
 
 	_, err := client.ListRequests(ctx, "")
@@ -695,7 +661,7 @@ func TestListRequests(t *testing.T) {
 // --- ResolveLatest ---
 
 func TestResolveLatestNoNewerVersion(t *testing.T) {
-	_, client := newClientAndServer(t)
+	client := newClientAndServer(t)
 	ctx := context.Background()
 
 	rec, err := client.CreateRecord(ctx, zenodo.RecordMetadata{
@@ -720,7 +686,7 @@ func TestResolveLatestNoNewerVersion(t *testing.T) {
 }
 
 func TestResolveLatestWithNewerVersion(t *testing.T) {
-	_, client := newClientAndServer(t)
+	client := newClientAndServer(t)
 	ctx := context.Background()
 
 	rec, err := client.CreateRecord(ctx, zenodo.RecordMetadata{
@@ -754,7 +720,7 @@ func TestResolveLatestWithNewerVersion(t *testing.T) {
 }
 
 func TestResolveLatestNotFound(t *testing.T) {
-	_, client := newClientAndServer(t)
+	client := newClientAndServer(t)
 	ctx := context.Background()
 
 	_, err := client.ResolveLatest(ctx, "999999")
@@ -766,7 +732,7 @@ func TestResolveLatestNotFound(t *testing.T) {
 // --- Do (public wrapper) ---
 
 func TestDoPublicWrapper(t *testing.T) {
-	_, client := newClientAndServer(t)
+	client := newClientAndServer(t)
 	ctx := context.Background()
 
 	var resp map[string]any
@@ -779,7 +745,7 @@ func TestDoPublicWrapper(t *testing.T) {
 // --- handleResponse error paths ---
 
 func TestHandleResponseStructuredError(t *testing.T) {
-	_, client := newClientAndServer(t)
+	client := newClientAndServer(t)
 	ctx := context.Background()
 
 	// Try to get a non-existent draft to trigger a 404 with structured error
@@ -793,7 +759,7 @@ func TestHandleResponseStructuredError(t *testing.T) {
 }
 
 func TestHandleResponseNoContent(t *testing.T) {
-	_, client := newClientAndServer(t)
+	client := newClientAndServer(t)
 	ctx := context.Background()
 
 	rec, err := client.CreateRecord(ctx, zenodo.RecordMetadata{
@@ -893,7 +859,7 @@ func TestUploadFileError(t *testing.T) {
 
 	tmpDir := t.TempDir()
 	tmpFile := filepath.Join(tmpDir, "err.txt")
-	if err := os.WriteFile(tmpFile, []byte("x"), 0644); err != nil {
+	if err := os.WriteFile(tmpFile, []byte("x"), 0o644); err != nil {
 		t.Fatalf("write: %v", err)
 	}
 
@@ -958,14 +924,13 @@ func TestDoContextCancelled(t *testing.T) {
 
 	client := zenodo.NewClient(srv.URL, "tok")
 	client.Retries = 5
-	client.RequestInterval = 1 * time.Second
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel() // cancel immediately
 
 	_, err := client.ListRecords(ctx)
 	if err == nil {
-		t.Fatal("expected error from cancelled context")
+		t.Fatal("expected error from canceled context")
 	}
 }
 
@@ -979,7 +944,6 @@ func TestDoRetryExhaustion(t *testing.T) {
 
 	client := zenodo.NewClient(srv.URL, "tok")
 	client.Retries = 2
-	client.RequestInterval = 1 * time.Millisecond
 
 	ctx := context.Background()
 	_, err := client.ListRecords(ctx)
@@ -1042,7 +1006,6 @@ func TestDoNotRetry4xx(t *testing.T) {
 
 	client := zenodo.NewClient(srv.URL, "tok")
 	client.Retries = 3
-	client.RequestInterval = 1 * time.Millisecond
 
 	ctx := context.Background()
 	_, err := client.ListRecords(ctx)
@@ -1063,7 +1026,6 @@ func TestDoRawContextCancelled(t *testing.T) {
 
 	client := zenodo.NewClient(srv.URL, "tok")
 	client.Retries = 5
-	client.RequestInterval = 1 * time.Second
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -1071,11 +1033,11 @@ func TestDoRawContextCancelled(t *testing.T) {
 	// UploadFile calls doRaw internally
 	tmpDir := t.TempDir()
 	tmpFile := filepath.Join(tmpDir, "cancel.txt")
-	_ = os.WriteFile(tmpFile, []byte("x"), 0644)
+	_ = os.WriteFile(tmpFile, []byte("x"), 0o644)
 
 	err := client.UploadFile(ctx, "1", tmpFile)
 	if err == nil {
-		t.Fatal("expected error from cancelled context")
+		t.Fatal("expected error from canceled context")
 	}
 }
 
@@ -1088,12 +1050,11 @@ func TestDoRawRetryExhaustion(t *testing.T) {
 
 	client := zenodo.NewClient(srv.URL, "tok")
 	client.Retries = 2
-	client.RequestInterval = 1 * time.Millisecond
 
 	ctx := context.Background()
 	tmpDir := t.TempDir()
 	tmpFile := filepath.Join(tmpDir, "retry.txt")
-	_ = os.WriteFile(tmpFile, []byte("x"), 0644)
+	_ = os.WriteFile(tmpFile, []byte("x"), 0o644)
 
 	err := client.UploadFile(ctx, "1", tmpFile)
 	if err == nil {
@@ -1198,11 +1159,10 @@ func TestDoRawNotRetry4xx(t *testing.T) {
 
 	client := zenodo.NewClient(srv.URL, "tok")
 	client.Retries = 3
-	client.RequestInterval = 1 * time.Millisecond
 
 	tmpDir := t.TempDir()
 	tmpFile := filepath.Join(tmpDir, "no-retry.txt")
-	_ = os.WriteFile(tmpFile, []byte("data"), 0644)
+	_ = os.WriteFile(tmpFile, []byte("data"), 0o644)
 
 	err := client.UploadFile(context.Background(), "1", tmpFile)
 	if err == nil {
@@ -1233,11 +1193,10 @@ func TestDoRawContentRetryExhaustion(t *testing.T) {
 
 	client := zenodo.NewClient(srv.URL, "tok")
 	client.Retries = 2
-	client.RequestInterval = 1 * time.Millisecond
 
 	tmpDir := t.TempDir()
 	tmpFile := filepath.Join(tmpDir, "retry.txt")
-	_ = os.WriteFile(tmpFile, []byte("data"), 0644)
+	_ = os.WriteFile(tmpFile, []byte("data"), 0o644)
 
 	err := client.UploadFile(context.Background(), "1", tmpFile)
 	if err == nil {
@@ -1289,7 +1248,7 @@ func TestDownloadRecordDirCreateError(t *testing.T) {
 	// Create a file at the destination path so MkdirAll fails
 	tmpDir := t.TempDir()
 	blockingFile := filepath.Join(tmpDir, "blocked")
-	if err := os.WriteFile(blockingFile, []byte("x"), 0644); err != nil {
+	if err := os.WriteFile(blockingFile, []byte("x"), 0o644); err != nil {
 		t.Fatalf("write: %v", err)
 	}
 
@@ -1309,17 +1268,6 @@ func TestCreateRecordError(t *testing.T) {
 	client := newErrorServer(t, 500, `{"message":"internal error"}`)
 	ctx := context.Background()
 	_, err := client.CreateRecord(ctx, zenodo.RecordMetadata{Title: "fail"})
-	if err == nil {
-		t.Fatal("expected error")
-	}
-}
-
-// --- UpdateDraft: server error ---
-
-func TestUpdateDraftError(t *testing.T) {
-	client := newErrorServer(t, 500, `{"message":"internal error"}`)
-	ctx := context.Background()
-	_, err := client.UpdateDraft(ctx, "999", zenodo.RecordMetadata{Title: "fail"})
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -1345,7 +1293,7 @@ func TestUploadFileInitError(t *testing.T) {
 
 	tmpDir := t.TempDir()
 	tmpFile := filepath.Join(tmpDir, "init-err.txt")
-	_ = os.WriteFile(tmpFile, []byte("data"), 0644)
+	_ = os.WriteFile(tmpFile, []byte("data"), 0o644)
 
 	err := client.UploadFile(context.Background(), "1", tmpFile)
 	if err == nil {
@@ -1390,7 +1338,7 @@ func TestUploadFileCommitError(t *testing.T) {
 
 	tmpDir := t.TempDir()
 	tmpFile := filepath.Join(tmpDir, "commit-err.txt")
-	_ = os.WriteFile(tmpFile, []byte("data"), 0644)
+	_ = os.WriteFile(tmpFile, []byte("data"), 0o644)
 
 	err := client.UploadFile(context.Background(), "1", tmpFile)
 	if err == nil {
@@ -1404,7 +1352,7 @@ func TestUploadFileCommitError(t *testing.T) {
 // --- UploadFile: nonexistent file ---
 
 func TestUploadFileNonexistentFile(t *testing.T) {
-	_, client := newClientAndServer(t)
+	client := newClientAndServer(t)
 	ctx := context.Background()
 
 	err := client.UploadFile(ctx, "1", "/nonexistent/path/file.txt")
@@ -1419,7 +1367,7 @@ func TestUploadFileNonexistentFile(t *testing.T) {
 // --- UploadFile: directory as file ---
 
 func TestUploadFileDirectoryAsFile(t *testing.T) {
-	_, client := newClientAndServer(t)
+	client := newClientAndServer(t)
 	tmpDir := t.TempDir()
 
 	err := client.UploadFile(context.Background(), "1", tmpDir)
@@ -1489,11 +1437,10 @@ func TestDoStreaming4xxNoRetry(t *testing.T) {
 
 	client := zenodo.NewClient(srv.URL, "tok")
 	client.Retries = 2
-	client.RequestInterval = 1 * time.Millisecond
 
 	tmpDir := t.TempDir()
 	tmpFile := filepath.Join(tmpDir, "4xx.txt")
-	_ = os.WriteFile(tmpFile, []byte("data"), 0644)
+	_ = os.WriteFile(tmpFile, []byte("data"), 0o644)
 
 	err := client.UploadFile(context.Background(), "1", tmpFile)
 	if err == nil {
@@ -1555,7 +1502,6 @@ func TestDoRetriesOn429(t *testing.T) {
 
 	client := zenodo.NewClient(srv.URL, "tok")
 	client.Retries = 2
-	client.RequestInterval = 1 * time.Millisecond
 
 	var result map[string]any
 	err := client.Do(context.Background(), "GET", "/api/records", nil, &result)

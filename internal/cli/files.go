@@ -72,7 +72,6 @@ to the published file list.`,
 		id := ctx.Args[0]
 		files, err := ctx.Client.ListFiles(ctx.Cmd.Context(), id)
 		if err != nil {
-			// Fall back to published files
 			files, err = ctx.Client.ListPublishedFiles(ctx.Cmd.Context(), id)
 			if err != nil {
 				return ctx.R.Failure(ctx.Meta, apiError(err))

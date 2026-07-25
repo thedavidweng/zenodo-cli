@@ -24,5 +24,5 @@ type API interface {
 	GetFile(ctx context.Context, id, filename string) (*RecordFile, error)
 	ImportFiles(ctx context.Context, id string) error
 	ResolveLatest(ctx context.Context, id string) (string, error)
-	Do(ctx context.Context, method, path string, body any, result any) error
+	Do(ctx context.Context, method, path string, body, result any) error
 }

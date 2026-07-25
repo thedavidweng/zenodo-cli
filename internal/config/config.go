@@ -38,7 +38,7 @@ func Load(path string) (*Config, error) {
 // Save writes the config to path atomically with 0600 permissions.
 func Save(path string, cfg *Config) error {
 	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0700); err != nil {
+	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return fmt.Errorf("create config dir: %w", err)
 	}
 	data, err := yaml.Marshal(cfg)
@@ -52,7 +52,7 @@ func Save(path string, cfg *Config) error {
 	tmpPath := tmp.Name()
 	defer func() { _ = os.Remove(tmpPath) }()
 
-	if err := tmp.Chmod(0600); err != nil {
+	if err := tmp.Chmod(0o600); err != nil {
 		_ = tmp.Close()
 		return fmt.Errorf("chmod temp file: %w", err)
 	}
@@ -95,13 +95,6 @@ func (c *Config) GetProfile(name string) (*Profile, error) {
 		return nil, fmt.Errorf("profile %q not found", name)
 	}
 	return p, nil
-}
-
-func (c *Config) GetProfileOrNil(name string) *Profile {
-	if name == "" {
-		name = c.CurrentProfile
-	}
-	return c.Profiles[name]
 }
 
 func (c *Config) SetProfile(name string, p *Profile) {

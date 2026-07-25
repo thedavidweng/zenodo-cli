@@ -87,7 +87,7 @@ go install github.com/thedavidweng/zenodo-cli/cmd/zenodo@latest
 ```shell
 git clone https://github.com/thedavidweng/zenodo-cli.git
 cd zenodo-cli
-make build
+mise run build
 ```
 
 </details>
@@ -126,10 +126,10 @@ Remove config if desired: `rm -rf ~/.config/zenodo-cli`
 
 ## Documentation
 
-- [Command Reference](docs/commands.md) — all commands with flags, examples, and configuration
+- [Command Reference](COMMANDS.md) — all commands with flags, examples, and configuration
 - [Authentication](docs/auth.md) — token setup, profiles, sandbox mode
 - [Safety Model](docs/safety.md) — `--read-only`, `--dry-run`, `--confirm` gates
-- [JSON Contract](docs/json-contract.md) — envelope schema, output modifiers
+- [JSON Contract](JSON_SCHEMA.md) — envelope schema, output modifiers
 - [Global Flags & Environment Variables](docs/flags.md) — all CLI flags and env vars
 - [Architecture](docs/ARCHITECTURE.md) — codebase structure and design decisions
 - [Agent Guide](docs/agent-guide.md) — scripting, JSON mode, exit codes

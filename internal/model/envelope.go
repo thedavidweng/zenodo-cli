@@ -43,10 +43,22 @@ type Meta struct {
 
 func ExitCode(code string) int {
 	switch code {
+	case ErrValidationFailed:
+		return 1
 	case ErrAuthRequired, ErrAuthFailed:
 		return 2
-	case ErrReadOnlyViolation, ErrConfirmationRequired:
+	case ErrZenodoAPI, ErrResourceNotFound:
 		return 3
+	case ErrNetwork:
+		return 4
+	case ErrPartialSuccess:
+		return 5
+	case ErrReadOnlyViolation, ErrConfirmationRequired:
+		return 6
+	case ErrFilesystem:
+		return 7
+	case ErrConfig:
+		return 8
 	case ErrInterrupted:
 		return 130
 	default:

@@ -186,7 +186,7 @@ func TestRecordsCreateWithMetadataFile(t *testing.T) {
 		},
 	}
 	data, _ := json.Marshal(metaJSON)
-	if err := os.WriteFile(metaPath, data, 0644); err != nil {
+	if err := os.WriteFile(metaPath, data, 0o644); err != nil {
 		t.Fatalf("write meta: %v", err)
 	}
 
@@ -749,7 +749,7 @@ func TestRecordsCreateBadMetadataFile(t *testing.T) {
 
 	tmpDir := t.TempDir()
 	metaPath := filepath.Join(tmpDir, "bad.json")
-	if err := os.WriteFile(metaPath, []byte("not-json{{{"), 0644); err != nil {
+	if err := os.WriteFile(metaPath, []byte("not-json{{{"), 0o644); err != nil {
 		t.Fatalf("write: %v", err)
 	}
 
