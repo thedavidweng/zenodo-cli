@@ -2,9 +2,6 @@ package cli
 
 import (
 	"github.com/spf13/cobra"
-
-	"github.com/thedavidweng/zenodo-cli/internal/model"
-	"github.com/thedavidweng/zenodo-cli/internal/output"
 )
 
 var searchCmd = &cobra.Command{
@@ -20,17 +17,14 @@ This command does not require authentication.`,
 		query := ctx.Args[0]
 		resp, err := ctx.Client.SearchRecords(ctx.Cmd.Context(), query)
 		if err != nil {
-			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
+			return ctx.R.Failure(ctx.Meta, apiError(err))
 		}
 
-		if ctx.App.JSON {
-			return ctx.R.Success(ctx.Meta, resp.Hits, nil)
-		}
-
-		for _, rec := range resp.Hits.Hits {
-			ctx.R.Human("[%s] %s\n", rec.ID, rec.Metadata.Title)
-		}
-		ctx.R.Human("\nTotal: %d\n", resp.Hits.Total)
-		return nil
+		return ctx.R.Render(ctx.Meta, resp.Hits, func() {
+			for _, rec := range resp.Hits.Hits {
+				ctx.R.Human("[%s] %s\n", rec.ID, rec.Metadata.Title)
+			}
+			ctx.R.Human("\nTotal: %d\n", resp.Hits.Total)
+		})
 	}),
 }

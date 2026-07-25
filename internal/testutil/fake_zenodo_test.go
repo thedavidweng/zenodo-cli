@@ -37,7 +37,7 @@ func TestCheckAuthWrongToken(t *testing.T) {
 	fz := NewFakeZenodo("correct")
 	defer fz.Close()
 
-	req, _ := http.NewRequest("GET", fz.URL()+"/api/user/records", nil)
+	req, _ := http.NewRequest("GET", fz.URL()+"/api/user/records", http.NoBody)
 	req.Header.Set("Authorization", "Bearer wrong")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -74,7 +74,7 @@ func TestCreateAndListRecords(t *testing.T) {
 	}
 
 	// List user records
-	req, _ = http.NewRequest("GET", fz.URL()+"/api/user/records", nil)
+	req, _ = http.NewRequest("GET", fz.URL()+"/api/user/records", http.NoBody)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, err = http.DefaultClient.Do(req)
 	if err != nil {
@@ -102,7 +102,7 @@ func TestSearchRecords(t *testing.T) {
 	_ = resp.Body.Close()
 
 	// Search
-	req, _ = http.NewRequest("GET", fz.URL()+"/api/records?q=quantum", nil)
+	req, _ = http.NewRequest("GET", fz.URL()+"/api/records?q=quantum", http.NoBody)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -117,7 +117,7 @@ func TestMethodNotAllowed(t *testing.T) {
 	fz := NewFakeZenodo("tok")
 	defer fz.Close()
 
-	req, _ := http.NewRequest("DELETE", fz.URL()+"/api/user/records", nil)
+	req, _ := http.NewRequest("DELETE", fz.URL()+"/api/user/records", http.NoBody)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -132,7 +132,7 @@ func TestSearchMethodNotAllowed(t *testing.T) {
 	fz := NewFakeZenodo("tok")
 	defer fz.Close()
 
-	req, _ := http.NewRequest("DELETE", fz.URL()+"/api/records", nil)
+	req, _ := http.NewRequest("DELETE", fz.URL()+"/api/records", http.NoBody)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -156,16 +156,16 @@ func TestGetPublishedRecord(t *testing.T) {
 	var created map[string]any
 	_ = json.NewDecoder(resp.Body).Decode(&created)
 	_ = resp.Body.Close()
-	id := created["id"].(string)
+	id, _ := created["id"].(string)
 
 	// Publish
-	req, _ = http.NewRequest("POST", fz.URL()+"/api/records/"+id+"/draft/actions/publish", nil)
+	req, _ = http.NewRequest("POST", fz.URL()+"/api/records/"+id+"/draft/actions/publish", http.NoBody)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, _ = http.DefaultClient.Do(req)
 	_ = resp.Body.Close()
 
 	// Get published
-	req, _ = http.NewRequest("GET", fz.URL()+"/api/records/"+id, nil)
+	req, _ = http.NewRequest("GET", fz.URL()+"/api/records/"+id, http.NoBody)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -188,9 +188,9 @@ func TestGetDraft(t *testing.T) {
 	var created map[string]any
 	_ = json.NewDecoder(resp.Body).Decode(&created)
 	_ = resp.Body.Close()
-	id := created["id"].(string)
+	id, _ := created["id"].(string)
 
-	req, _ = http.NewRequest("GET", fz.URL()+"/api/records/"+id+"/draft", nil)
+	req, _ = http.NewRequest("GET", fz.URL()+"/api/records/"+id+"/draft", http.NoBody)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -213,7 +213,7 @@ func TestUpdateDraft(t *testing.T) {
 	var created map[string]any
 	_ = json.NewDecoder(resp.Body).Decode(&created)
 	_ = resp.Body.Close()
-	id := created["id"].(string)
+	id, _ := created["id"].(string)
 
 	update := `{"metadata":{"title":"Updated","description":"new desc","publication_date":"2026-06-01","resource_type":{"type":"publication"}}}`
 	req, _ = http.NewRequest("PUT", fz.URL()+"/api/records/"+id+"/draft", bytes.NewBufferString(update))
@@ -240,9 +240,9 @@ func TestDeleteDraft(t *testing.T) {
 	var created map[string]any
 	_ = json.NewDecoder(resp.Body).Decode(&created)
 	_ = resp.Body.Close()
-	id := created["id"].(string)
+	id, _ := created["id"].(string)
 
-	req, _ = http.NewRequest("DELETE", fz.URL()+"/api/records/"+id+"/draft", nil)
+	req, _ = http.NewRequest("DELETE", fz.URL()+"/api/records/"+id+"/draft", http.NoBody)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -265,9 +265,9 @@ func TestNewVersion(t *testing.T) {
 	var created map[string]any
 	_ = json.NewDecoder(resp.Body).Decode(&created)
 	_ = resp.Body.Close()
-	id := created["id"].(string)
+	id, _ := created["id"].(string)
 
-	req, _ = http.NewRequest("POST", fz.URL()+"/api/records/"+id+"/versions", nil)
+	req, _ = http.NewRequest("POST", fz.URL()+"/api/records/"+id+"/versions", http.NoBody)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -291,7 +291,7 @@ func TestFileUploadAndList(t *testing.T) {
 	var created map[string]any
 	_ = json.NewDecoder(resp.Body).Decode(&created)
 	_ = resp.Body.Close()
-	id := created["id"].(string)
+	id, _ := created["id"].(string)
 
 	// Init upload
 	initBody := `[{"key":"test.txt"}]`
@@ -321,7 +321,7 @@ func TestFileUploadAndList(t *testing.T) {
 	_ = resp.Body.Close()
 
 	// Commit
-	req, _ = http.NewRequest("POST", fz.URL()+"/api/records/"+id+"/draft/files/test.txt/commit", nil)
+	req, _ = http.NewRequest("POST", fz.URL()+"/api/records/"+id+"/draft/files/test.txt/commit", http.NoBody)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, err = http.DefaultClient.Do(req)
 	if err != nil {
@@ -333,7 +333,7 @@ func TestFileUploadAndList(t *testing.T) {
 	_ = resp.Body.Close()
 
 	// List draft files
-	req, _ = http.NewRequest("GET", fz.URL()+"/api/records/"+id+"/draft/files", nil)
+	req, _ = http.NewRequest("GET", fz.URL()+"/api/records/"+id+"/draft/files", http.NoBody)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, err = http.DefaultClient.Do(req)
 	if err != nil {
@@ -345,7 +345,7 @@ func TestFileUploadAndList(t *testing.T) {
 	_ = resp.Body.Close()
 
 	// Get file info
-	req, _ = http.NewRequest("GET", fz.URL()+"/api/records/"+id+"/draft/files/test.txt", nil)
+	req, _ = http.NewRequest("GET", fz.URL()+"/api/records/"+id+"/draft/files/test.txt", http.NoBody)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, err = http.DefaultClient.Do(req)
 	if err != nil {
@@ -357,13 +357,13 @@ func TestFileUploadAndList(t *testing.T) {
 	_ = resp.Body.Close()
 
 	// Publish
-	req, _ = http.NewRequest("POST", fz.URL()+"/api/records/"+id+"/draft/actions/publish", nil)
+	req, _ = http.NewRequest("POST", fz.URL()+"/api/records/"+id+"/draft/actions/publish", http.NoBody)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, _ = http.DefaultClient.Do(req)
 	_ = resp.Body.Close()
 
 	// List published files
-	req, _ = http.NewRequest("GET", fz.URL()+"/api/records/"+id+"/files", nil)
+	req, _ = http.NewRequest("GET", fz.URL()+"/api/records/"+id+"/files", http.NoBody)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, err = http.DefaultClient.Do(req)
 	if err != nil {
@@ -375,7 +375,7 @@ func TestFileUploadAndList(t *testing.T) {
 	_ = resp.Body.Close()
 
 	// Download file
-	req, _ = http.NewRequest("GET", fz.URL()+"/api/records/"+id+"/files/test.txt/content", nil)
+	req, _ = http.NewRequest("GET", fz.URL()+"/api/records/"+id+"/files/test.txt/content", http.NoBody)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, err = http.DefaultClient.Do(req)
 	if err != nil {
@@ -403,7 +403,7 @@ func TestDeleteFile(t *testing.T) {
 	var created map[string]any
 	_ = json.NewDecoder(resp.Body).Decode(&created)
 	_ = resp.Body.Close()
-	id := created["id"].(string)
+	id, _ := created["id"].(string)
 
 	// Init + upload + commit
 	initBody := `[{"key":"del.txt"}]`
@@ -419,13 +419,13 @@ func TestDeleteFile(t *testing.T) {
 	resp, _ = http.DefaultClient.Do(req)
 	_ = resp.Body.Close()
 
-	req, _ = http.NewRequest("POST", fz.URL()+"/api/records/"+id+"/draft/files/del.txt/commit", nil)
+	req, _ = http.NewRequest("POST", fz.URL()+"/api/records/"+id+"/draft/files/del.txt/commit", http.NoBody)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, _ = http.DefaultClient.Do(req)
 	_ = resp.Body.Close()
 
 	// Delete file
-	req, _ = http.NewRequest("DELETE", fz.URL()+"/api/records/"+id+"/draft/files/del.txt", nil)
+	req, _ = http.NewRequest("DELETE", fz.URL()+"/api/records/"+id+"/draft/files/del.txt", http.NoBody)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -448,16 +448,16 @@ func TestListVersions(t *testing.T) {
 	var created map[string]any
 	_ = json.NewDecoder(resp.Body).Decode(&created)
 	_ = resp.Body.Close()
-	id := created["id"].(string)
+	id, _ := created["id"].(string)
 
 	// Publish
-	req, _ = http.NewRequest("POST", fz.URL()+"/api/records/"+id+"/draft/actions/publish", nil)
+	req, _ = http.NewRequest("POST", fz.URL()+"/api/records/"+id+"/draft/actions/publish", http.NoBody)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, _ = http.DefaultClient.Do(req)
 	_ = resp.Body.Close()
 
 	// List versions
-	req, _ = http.NewRequest("GET", fz.URL()+"/api/records/"+id+"/versions", nil)
+	req, _ = http.NewRequest("GET", fz.URL()+"/api/records/"+id+"/versions", http.NoBody)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -480,9 +480,9 @@ func TestReserveDOI(t *testing.T) {
 	var created map[string]any
 	_ = json.NewDecoder(resp.Body).Decode(&created)
 	_ = resp.Body.Close()
-	id := created["id"].(string)
+	id, _ := created["id"].(string)
 
-	req, _ = http.NewRequest("POST", fz.URL()+"/api/records/"+id+"/draft/pids/doi", nil)
+	req, _ = http.NewRequest("POST", fz.URL()+"/api/records/"+id+"/draft/pids/doi", http.NoBody)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -505,7 +505,7 @@ func TestSubmitToCommunity(t *testing.T) {
 	var created map[string]any
 	_ = json.NewDecoder(resp.Body).Decode(&created)
 	_ = resp.Body.Close()
-	id := created["id"].(string)
+	id, _ := created["id"].(string)
 
 	submitBody := `{"receiver":{"community":"test-community"}}`
 	req, _ = http.NewRequest("PUT", fz.URL()+"/api/records/"+id+"/draft/review", bytes.NewBufferString(submitBody))
@@ -532,9 +532,9 @@ func TestImportFiles(t *testing.T) {
 	var created map[string]any
 	_ = json.NewDecoder(resp.Body).Decode(&created)
 	_ = resp.Body.Close()
-	id := created["id"].(string)
+	id, _ := created["id"].(string)
 
-	req, _ = http.NewRequest("POST", fz.URL()+"/api/records/"+id+"/draft/actions/files-import", nil)
+	req, _ = http.NewRequest("POST", fz.URL()+"/api/records/"+id+"/draft/actions/files-import", http.NoBody)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -549,7 +549,7 @@ func TestListRequests(t *testing.T) {
 	fz := NewFakeZenodo("tok")
 	defer fz.Close()
 
-	req, _ := http.NewRequest("GET", fz.URL()+"/api/requests", nil)
+	req, _ := http.NewRequest("GET", fz.URL()+"/api/requests", http.NoBody)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -564,7 +564,7 @@ func TestListRequestsMethodNotAllowed(t *testing.T) {
 	fz := NewFakeZenodo("tok")
 	defer fz.Close()
 
-	req, _ := http.NewRequest("POST", fz.URL()+"/api/requests", nil)
+	req, _ := http.NewRequest("POST", fz.URL()+"/api/requests", http.NoBody)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -588,15 +588,15 @@ func TestResolveLatest(t *testing.T) {
 	var created map[string]any
 	_ = json.NewDecoder(resp.Body).Decode(&created)
 	_ = resp.Body.Close()
-	id := created["id"].(string)
+	id, _ := created["id"].(string)
 
-	req, _ = http.NewRequest("POST", fz.URL()+"/api/records/"+id+"/draft/actions/publish", nil)
+	req, _ = http.NewRequest("POST", fz.URL()+"/api/records/"+id+"/draft/actions/publish", http.NoBody)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, _ = http.DefaultClient.Do(req)
 	_ = resp.Body.Close()
 
 	// Resolve latest (no newer version)
-	req, _ = http.NewRequest("GET", fz.URL()+"/api/records/"+id+"/versions/latest", nil)
+	req, _ = http.NewRequest("GET", fz.URL()+"/api/records/"+id+"/versions/latest", http.NoBody)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -611,7 +611,7 @@ func TestRecordNotFound(t *testing.T) {
 	fz := NewFakeZenodo("tok")
 	defer fz.Close()
 
-	req, _ := http.NewRequest("GET", fz.URL()+"/api/records/999999", nil)
+	req, _ := http.NewRequest("GET", fz.URL()+"/api/records/999999", http.NoBody)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -626,7 +626,7 @@ func TestDraftNotFound(t *testing.T) {
 	fz := NewFakeZenodo("tok")
 	defer fz.Close()
 
-	req, _ := http.NewRequest("GET", fz.URL()+"/api/records/999999/draft", nil)
+	req, _ := http.NewRequest("GET", fz.URL()+"/api/records/999999/draft", http.NoBody)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -641,7 +641,7 @@ func TestPublishDraftNotFound(t *testing.T) {
 	fz := NewFakeZenodo("tok")
 	defer fz.Close()
 
-	req, _ := http.NewRequest("POST", fz.URL()+"/api/records/999999/draft/actions/publish", nil)
+	req, _ := http.NewRequest("POST", fz.URL()+"/api/records/999999/draft/actions/publish", http.NoBody)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -656,7 +656,7 @@ func TestNewVersionNotFound(t *testing.T) {
 	fz := NewFakeZenodo("tok")
 	defer fz.Close()
 
-	req, _ := http.NewRequest("POST", fz.URL()+"/api/records/999999/versions", nil)
+	req, _ := http.NewRequest("POST", fz.URL()+"/api/records/999999/versions", http.NoBody)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -687,7 +687,7 @@ func TestDeleteDraftNotFound(t *testing.T) {
 	fz := NewFakeZenodo("tok")
 	defer fz.Close()
 
-	req, _ := http.NewRequest("DELETE", fz.URL()+"/api/records/999999/draft", nil)
+	req, _ := http.NewRequest("DELETE", fz.URL()+"/api/records/999999/draft", http.NoBody)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -722,7 +722,7 @@ func TestFileOperationsNotFound(t *testing.T) {
 	}
 
 	// Commit on non-existent record
-	req, _ = http.NewRequest("POST", fz.URL()+"/api/records/999999/draft/files/x/commit", nil)
+	req, _ = http.NewRequest("POST", fz.URL()+"/api/records/999999/draft/files/x/commit", http.NoBody)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, _ = http.DefaultClient.Do(req)
 	_ = resp.Body.Close()
@@ -731,7 +731,7 @@ func TestFileOperationsNotFound(t *testing.T) {
 	}
 
 	// Download from non-existent record
-	req, _ = http.NewRequest("GET", fz.URL()+"/api/records/999999/files/x/content", nil)
+	req, _ = http.NewRequest("GET", fz.URL()+"/api/records/999999/files/x/content", http.NoBody)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, _ = http.DefaultClient.Do(req)
 	_ = resp.Body.Close()
@@ -740,7 +740,7 @@ func TestFileOperationsNotFound(t *testing.T) {
 	}
 
 	// List files of non-existent record
-	req, _ = http.NewRequest("GET", fz.URL()+"/api/records/999999/draft/files", nil)
+	req, _ = http.NewRequest("GET", fz.URL()+"/api/records/999999/draft/files", http.NoBody)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, _ = http.DefaultClient.Do(req)
 	_ = resp.Body.Close()
@@ -749,7 +749,7 @@ func TestFileOperationsNotFound(t *testing.T) {
 	}
 
 	// Get file info of non-existent record
-	req, _ = http.NewRequest("GET", fz.URL()+"/api/records/999999/draft/files/x", nil)
+	req, _ = http.NewRequest("GET", fz.URL()+"/api/records/999999/draft/files/x", http.NoBody)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, _ = http.DefaultClient.Do(req)
 	_ = resp.Body.Close()
@@ -758,7 +758,7 @@ func TestFileOperationsNotFound(t *testing.T) {
 	}
 
 	// Delete file from non-existent record
-	req, _ = http.NewRequest("DELETE", fz.URL()+"/api/records/999999/draft/files/x", nil)
+	req, _ = http.NewRequest("DELETE", fz.URL()+"/api/records/999999/draft/files/x", http.NoBody)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, _ = http.DefaultClient.Do(req)
 	_ = resp.Body.Close()
@@ -771,7 +771,7 @@ func TestListVersionsNotFound(t *testing.T) {
 	fz := NewFakeZenodo("tok")
 	defer fz.Close()
 
-	req, _ := http.NewRequest("GET", fz.URL()+"/api/records/999999/versions", nil)
+	req, _ := http.NewRequest("GET", fz.URL()+"/api/records/999999/versions", http.NoBody)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -786,7 +786,7 @@ func TestReserveDOINotFound(t *testing.T) {
 	fz := NewFakeZenodo("tok")
 	defer fz.Close()
 
-	req, _ := http.NewRequest("POST", fz.URL()+"/api/records/999999/draft/pids/doi", nil)
+	req, _ := http.NewRequest("POST", fz.URL()+"/api/records/999999/draft/pids/doi", http.NoBody)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -817,7 +817,7 @@ func TestImportFilesNotFound(t *testing.T) {
 	fz := NewFakeZenodo("tok")
 	defer fz.Close()
 
-	req, _ := http.NewRequest("POST", fz.URL()+"/api/records/999999/draft/actions/files-import", nil)
+	req, _ := http.NewRequest("POST", fz.URL()+"/api/records/999999/draft/actions/files-import", http.NoBody)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -840,22 +840,22 @@ func TestPublishDraftThenGetPublished(t *testing.T) {
 	var created map[string]any
 	_ = json.NewDecoder(resp.Body).Decode(&created)
 	_ = resp.Body.Close()
-	id := created["id"].(string)
+	id, _ := created["id"].(string)
 
 	// Get draft before publish (should work)
-	req, _ = http.NewRequest("GET", fz.URL()+"/api/records/"+id+"/draft", nil)
+	req, _ = http.NewRequest("GET", fz.URL()+"/api/records/"+id+"/draft", http.NoBody)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, _ = http.DefaultClient.Do(req)
 	_ = resp.Body.Close()
 
 	// Publish
-	req, _ = http.NewRequest("POST", fz.URL()+"/api/records/"+id+"/draft/actions/publish", nil)
+	req, _ = http.NewRequest("POST", fz.URL()+"/api/records/"+id+"/draft/actions/publish", http.NoBody)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, _ = http.DefaultClient.Do(req)
 	_ = resp.Body.Close()
 
 	// Get published record
-	req, _ = http.NewRequest("GET", fz.URL()+"/api/records/"+id, nil)
+	req, _ = http.NewRequest("GET", fz.URL()+"/api/records/"+id, http.NoBody)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -878,10 +878,10 @@ func TestPublishedFilesListForDraft(t *testing.T) {
 	var created map[string]any
 	_ = json.NewDecoder(resp.Body).Decode(&created)
 	_ = resp.Body.Close()
-	id := created["id"].(string)
+	id, _ := created["id"].(string)
 
 	// List published files for a draft (should fail)
-	req, _ = http.NewRequest("GET", fz.URL()+"/api/records/"+id+"/files", nil)
+	req, _ = http.NewRequest("GET", fz.URL()+"/api/records/"+id+"/files", http.NoBody)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -904,10 +904,10 @@ func TestCommitFileNotFound(t *testing.T) {
 	var created map[string]any
 	_ = json.NewDecoder(resp.Body).Decode(&created)
 	_ = resp.Body.Close()
-	id := created["id"].(string)
+	id, _ := created["id"].(string)
 
 	// Try to commit a file that was never uploaded
-	req, _ = http.NewRequest("POST", fz.URL()+"/api/records/"+id+"/draft/files/nonexistent.txt/commit", nil)
+	req, _ = http.NewRequest("POST", fz.URL()+"/api/records/"+id+"/draft/files/nonexistent.txt/commit", http.NoBody)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -930,7 +930,7 @@ func TestDownloadFileNotFound(t *testing.T) {
 	var created map[string]any
 	_ = json.NewDecoder(resp.Body).Decode(&created)
 	_ = resp.Body.Close()
-	id := created["id"].(string)
+	id, _ := created["id"].(string)
 
 	// Init + upload + publish
 	initBody := `[{"key":"exists.txt"}]`
@@ -945,18 +945,18 @@ func TestDownloadFileNotFound(t *testing.T) {
 	resp, _ = http.DefaultClient.Do(req)
 	_ = resp.Body.Close()
 
-	req, _ = http.NewRequest("POST", fz.URL()+"/api/records/"+id+"/draft/files/exists.txt/commit", nil)
+	req, _ = http.NewRequest("POST", fz.URL()+"/api/records/"+id+"/draft/files/exists.txt/commit", http.NoBody)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, _ = http.DefaultClient.Do(req)
 	_ = resp.Body.Close()
 
-	req, _ = http.NewRequest("POST", fz.URL()+"/api/records/"+id+"/draft/actions/publish", nil)
+	req, _ = http.NewRequest("POST", fz.URL()+"/api/records/"+id+"/draft/actions/publish", http.NoBody)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, _ = http.DefaultClient.Do(req)
 	_ = resp.Body.Close()
 
 	// Try to download a non-existent file
-	req, _ = http.NewRequest("GET", fz.URL()+"/api/records/"+id+"/files/nonexistent.txt/content", nil)
+	req, _ = http.NewRequest("GET", fz.URL()+"/api/records/"+id+"/files/nonexistent.txt/content", http.NoBody)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -971,7 +971,7 @@ func TestMissingRecordID(t *testing.T) {
 	fz := NewFakeZenodo("tok")
 	defer fz.Close()
 
-	req, _ := http.NewRequest("GET", fz.URL()+"/api/records/", nil)
+	req, _ := http.NewRequest("GET", fz.URL()+"/api/records/", http.NoBody)
 	req.Header.Set("Authorization", "Bearer tok")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {

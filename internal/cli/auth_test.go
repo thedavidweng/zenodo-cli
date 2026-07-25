@@ -76,7 +76,6 @@ func TestAuthLoginHasTokenFlag(t *testing.T) {
 }
 
 func TestAuthLoginWithTokenFlag(t *testing.T) {
-	// The login command should accept --token and save it
 	var loginCmd *cobra.Command
 	for _, c := range authCmd.Commands() {
 		if c.Name() == "login" {
@@ -88,14 +87,12 @@ func TestAuthLoginWithTokenFlag(t *testing.T) {
 		t.Fatal("login command not found")
 	}
 
-	// Verify the command has a RunE function
 	if loginCmd.RunE == nil {
 		t.Error("login command should have RunE")
 	}
 }
 
 func TestAuthStatusRequiresConfig(t *testing.T) {
-	// Verify status command exists and has RunE
 	var statusCmd *cobra.Command
 	for _, c := range authCmd.Commands() {
 		if c.Name() == "status" {
@@ -204,7 +201,7 @@ profiles:
     token: status-token
     base_url: https://zenodo.org
 `
-	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0600); err != nil {
+	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0o600); err != nil {
 		t.Fatalf("write config: %v", err)
 	}
 
@@ -237,7 +234,7 @@ profiles:
     token: some-token
     base_url: https://zenodo.org
 `
-	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0600); err != nil {
+	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0o600); err != nil {
 		t.Fatalf("write config: %v", err)
 	}
 
@@ -279,7 +276,7 @@ profiles:
     token: ""
     base_url: https://zenodo.org
 `
-	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0600); err != nil {
+	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0o600); err != nil {
 		t.Fatalf("write config: %v", err)
 	}
 
@@ -298,7 +295,7 @@ profiles:
     token: logout-token
     base_url: https://zenodo.org
 `
-	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0600); err != nil {
+	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0o600); err != nil {
 		t.Fatalf("write config: %v", err)
 	}
 
@@ -329,7 +326,7 @@ profiles:
     token: dryrun-token
     base_url: https://zenodo.org
 `
-	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0600); err != nil {
+	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0o600); err != nil {
 		t.Fatalf("write config: %v", err)
 	}
 
@@ -360,16 +357,11 @@ profiles:
     token: some-token
     base_url: https://zenodo.org
 `
-	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0600); err != nil {
+	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0o600); err != nil {
 		t.Fatalf("write config: %v", err)
 	}
 
-	// Logout with a different profile name
 	_, err := runCmd(t, cfgPath, authSubcmd("logout"), nil, nil, nil)
-	app := &AppContext{ConfigFile: cfgPath, Profile: "nonexistent"}
-	_ = app
-	// We need to set the profile to "nonexistent" - but runCmd uses "test" by default.
-	// Let's just test the happy path with the existing profile.
 	_ = err
 }
 

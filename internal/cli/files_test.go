@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"bytes"
 	"context"
 	"os"
 	"path/filepath"
@@ -89,7 +90,7 @@ func TestFilesUploadCommand(t *testing.T) {
 
 	tmpDir := t.TempDir()
 	tmpFile := filepath.Join(tmpDir, "data.csv")
-	if err := os.WriteFile(tmpFile, []byte("a,b\n1,2\n"), 0644); err != nil {
+	if err := os.WriteFile(tmpFile, []byte("a,b\n1,2\n"), 0o644); err != nil {
 		t.Fatalf("write temp file: %v", err)
 	}
 
@@ -118,7 +119,7 @@ func TestFilesUploadMultipleFiles(t *testing.T) {
 	filePaths := make([]string, 0, 2)
 	for _, name := range []string{"a.csv", "b.csv"} {
 		p := filepath.Join(tmpDir, name)
-		if err := os.WriteFile(p, []byte("data"), 0644); err != nil {
+		if err := os.WriteFile(p, []byte("data"), 0o644); err != nil {
 			t.Fatalf("write %s: %v", name, err)
 		}
 		filePaths = append(filePaths, p)
@@ -147,7 +148,7 @@ func TestFilesUploadDryRun(t *testing.T) {
 
 	tmpDir := t.TempDir()
 	tmpFile := filepath.Join(tmpDir, "test.csv")
-	if err := os.WriteFile(tmpFile, []byte("x"), 0644); err != nil {
+	if err := os.WriteFile(tmpFile, []byte("x"), 0o644); err != nil {
 		t.Fatalf("write: %v", err)
 	}
 
@@ -174,7 +175,7 @@ func TestFilesUploadJSON(t *testing.T) {
 
 	tmpDir := t.TempDir()
 	tmpFile := filepath.Join(tmpDir, "data.json")
-	if err := os.WriteFile(tmpFile, []byte(`{"key":"value"}`), 0644); err != nil {
+	if err := os.WriteFile(tmpFile, []byte(`{"key":"value"}`), 0o644); err != nil {
 		t.Fatalf("write: %v", err)
 	}
 
@@ -201,7 +202,7 @@ func TestFilesListCommand(t *testing.T) {
 
 	tmpDir := t.TempDir()
 	tmpFile := filepath.Join(tmpDir, "myfile.txt")
-	if err := os.WriteFile(tmpFile, []byte("hello"), 0644); err != nil {
+	if err := os.WriteFile(tmpFile, []byte("hello"), 0o644); err != nil {
 		t.Fatalf("write: %v", err)
 	}
 	if err := client.UploadFile(context.Background(), rec.ID, tmpFile); err != nil {
@@ -231,7 +232,7 @@ func TestFilesListCommandJSON(t *testing.T) {
 
 	tmpDir := t.TempDir()
 	tmpFile := filepath.Join(tmpDir, "data.bin")
-	if err := os.WriteFile(tmpFile, []byte("binary-data"), 0644); err != nil {
+	if err := os.WriteFile(tmpFile, []byte("binary-data"), 0o644); err != nil {
 		t.Fatalf("write: %v", err)
 	}
 	if err := client.UploadFile(context.Background(), rec.ID, tmpFile); err != nil {
@@ -261,7 +262,7 @@ func TestFilesListPublishedFiles(t *testing.T) {
 
 	tmpDir := t.TempDir()
 	tmpFile := filepath.Join(tmpDir, "pub.txt")
-	if err := os.WriteFile(tmpFile, []byte("published"), 0644); err != nil {
+	if err := os.WriteFile(tmpFile, []byte("published"), 0o644); err != nil {
 		t.Fatalf("write: %v", err)
 	}
 	if err := client.UploadFile(context.Background(), rec.ID, tmpFile); err != nil {
@@ -296,7 +297,7 @@ func TestFilesDownloadCommand(t *testing.T) {
 	tmpDir := t.TempDir()
 	uploadFile := filepath.Join(tmpDir, "upload.txt")
 	content := []byte("download content")
-	if err := os.WriteFile(uploadFile, content, 0644); err != nil {
+	if err := os.WriteFile(uploadFile, content, 0o644); err != nil {
 		t.Fatalf("write: %v", err)
 	}
 	if err := client.UploadFile(context.Background(), rec.ID, uploadFile); err != nil {
@@ -322,7 +323,7 @@ func TestFilesDownloadCommand(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read downloaded: %v", err)
 	}
-	if string(data) != string(content) {
+	if !bytes.Equal(data, content) {
 		t.Errorf("content = %q, want %q", data, content)
 	}
 }
@@ -362,7 +363,7 @@ func TestFilesDownloadJSON(t *testing.T) {
 
 	tmpDir := t.TempDir()
 	tmpFile := filepath.Join(tmpDir, "f.txt")
-	if err := os.WriteFile(tmpFile, []byte("x"), 0644); err != nil {
+	if err := os.WriteFile(tmpFile, []byte("x"), 0o644); err != nil {
 		t.Fatalf("write: %v", err)
 	}
 	if err := client.UploadFile(context.Background(), rec.ID, tmpFile); err != nil {
@@ -397,7 +398,7 @@ func TestFilesDeleteCommand(t *testing.T) {
 
 	tmpDir := t.TempDir()
 	tmpFile := filepath.Join(tmpDir, "todelete.txt")
-	if err := os.WriteFile(tmpFile, []byte("delete me"), 0644); err != nil {
+	if err := os.WriteFile(tmpFile, []byte("delete me"), 0o644); err != nil {
 		t.Fatalf("write: %v", err)
 	}
 	if err := client.UploadFile(context.Background(), rec.ID, tmpFile); err != nil {
@@ -448,7 +449,7 @@ func TestFilesDeleteJSON(t *testing.T) {
 
 	tmpDir := t.TempDir()
 	tmpFile := filepath.Join(tmpDir, "del.txt")
-	if err := os.WriteFile(tmpFile, []byte("del"), 0644); err != nil {
+	if err := os.WriteFile(tmpFile, []byte("del"), 0o644); err != nil {
 		t.Fatalf("write: %v", err)
 	}
 	if err := client.UploadFile(context.Background(), rec.ID, tmpFile); err != nil {
@@ -478,7 +479,7 @@ func TestFilesInfoCommand(t *testing.T) {
 
 	tmpDir := t.TempDir()
 	tmpFile := filepath.Join(tmpDir, "info.txt")
-	if err := os.WriteFile(tmpFile, []byte("info content"), 0644); err != nil {
+	if err := os.WriteFile(tmpFile, []byte("info content"), 0o644); err != nil {
 		t.Fatalf("write: %v", err)
 	}
 	if err := client.UploadFile(context.Background(), rec.ID, tmpFile); err != nil {
@@ -508,7 +509,7 @@ func TestFilesInfoCommandJSON(t *testing.T) {
 
 	tmpDir := t.TempDir()
 	tmpFile := filepath.Join(tmpDir, "info.json")
-	if err := os.WriteFile(tmpFile, []byte("json data"), 0644); err != nil {
+	if err := os.WriteFile(tmpFile, []byte("json data"), 0o644); err != nil {
 		t.Fatalf("write: %v", err)
 	}
 	if err := client.UploadFile(context.Background(), rec.ID, tmpFile); err != nil {
@@ -593,7 +594,7 @@ func TestFilesReadOnlyBlocksUpload(t *testing.T) {
 
 	tmpDir := t.TempDir()
 	tmpFile := filepath.Join(tmpDir, "x.txt")
-	if err := os.WriteFile(tmpFile, []byte("x"), 0644); err != nil {
+	if err := os.WriteFile(tmpFile, []byte("x"), 0o644); err != nil {
 		t.Fatalf("write: %v", err)
 	}
 
@@ -653,7 +654,7 @@ func TestFilesDownloadLatest(t *testing.T) {
 
 	tmpDir := t.TempDir()
 	tmpFile := filepath.Join(tmpDir, "v1.txt")
-	if err := os.WriteFile(tmpFile, []byte("version 1"), 0644); err != nil {
+	if err := os.WriteFile(tmpFile, []byte("version 1"), 0o644); err != nil {
 		t.Fatalf("write: %v", err)
 	}
 	if err := client.UploadFile(context.Background(), rec.ID, tmpFile); err != nil {
@@ -671,7 +672,7 @@ func TestFilesDownloadLatest(t *testing.T) {
 	}
 
 	tmpFile2 := filepath.Join(tmpDir, "v2.txt")
-	if err := os.WriteFile(tmpFile2, []byte("version 2"), 0644); err != nil {
+	if err := os.WriteFile(tmpFile2, []byte("version 2"), 0o644); err != nil {
 		t.Fatalf("write: %v", err)
 	}
 	if err := client.UploadFile(context.Background(), newVer.ID, tmpFile2); err != nil {

@@ -26,16 +26,14 @@ var recordsListCmd = &cobra.Command{
 	RunE: withAuth("records.list", func(ctx *CmdContext) error {
 		resp, err := ctx.Client.ListRecords(ctx.Cmd.Context())
 		if err != nil {
-			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
+			return ctx.R.Failure(ctx.Meta, apiError(err))
 		}
-		if ctx.App.JSON {
-			return ctx.R.Success(ctx.Meta, resp.Hits, nil)
-		}
-		for _, rec := range resp.Hits.Hits {
-			ctx.R.Human("[%s] %s (%s)\n", rec.ID, rec.Metadata.Title, rec.Status)
-		}
-		ctx.R.Human("\nTotal: %d\n", resp.Hits.Total)
-		return nil
+		return ctx.R.Render(ctx.Meta, resp.Hits, func() {
+			for _, rec := range resp.Hits.Hits {
+				ctx.R.Human("[%s] %s (%s)\n", rec.ID, rec.Metadata.Title, rec.Status)
+			}
+			ctx.R.Human("\nTotal: %d\n", resp.Hits.Total)
+		})
 	}),
 }
 
@@ -51,19 +49,22 @@ use "records publish" to make it public.`,
   zenodo records create --metadata meta.json
   zenodo records create --title "Test" --dry-run`,
 	RunE: withAuth("records.create", func(ctx *CmdContext) error {
-		if err := enforceReadOnly(&ctx.R, ctx.Meta, ctx.App); err != nil {
+		title, _ := ctx.Cmd.Flags().GetString("title")
+		metadataFile, _ := ctx.Cmd.Flags().GetString("metadata")
+
+		proceed, err := ctx.Gate.Allow(RiskMediumWrite, Plan{
+			Action:    "create_record",
+			HumanMsg:  "Would create draft record (title=%q, metadata=%s)\n",
+			HumanArgs: []any{title, metadataFile},
+		})
+		if err != nil {
 			return err
 		}
-		if ctx.App.DryRun {
-			title, _ := ctx.Cmd.Flags().GetString("title")
-			metadataFile, _ := ctx.Cmd.Flags().GetString("metadata")
-			ctx.R.Human("Would create draft record (title=%q, metadata=%s)\n", title, metadataFile)
-			return ctx.R.Success(ctx.Meta, map[string]any{"planned": true, "action": "create_record"}, nil)
+		if !proceed {
+			return nil
 		}
 
-		title, _ := ctx.Cmd.Flags().GetString("title")
 		description, _ := ctx.Cmd.Flags().GetString("description")
-		metadataFile, _ := ctx.Cmd.Flags().GetString("metadata")
 
 		var meta any
 		if metadataFile != "" {
@@ -88,14 +89,11 @@ use "records publish" to make it public.`,
 
 		rec, err := ctx.Client.CreateRecord(ctx.Cmd.Context(), meta)
 		if err != nil {
-			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
+			return ctx.R.Failure(ctx.Meta, apiError(err))
 		}
-
-		if ctx.App.JSON {
-			return ctx.R.Success(ctx.Meta, rec, nil)
-		}
-		ctx.R.Human("Created draft %s: %s\n", rec.ID, rec.Metadata.Title)
-		return nil
+		return ctx.R.Render(ctx.Meta, rec, func() {
+			ctx.R.Human("Created draft %s: %s\n", rec.ID, rec.Metadata.Title)
+		})
 	}),
 }
 
@@ -110,24 +108,21 @@ Tries to fetch the draft first; if none exists, falls back to the published reco
 	Args: cobra.ExactArgs(1),
 	RunE: withAuth("records.show", func(ctx *CmdContext) error {
 		id := ctx.Args[0]
-		// Try draft first, fall back to published
 		rec, err := ctx.Client.GetDraft(ctx.Cmd.Context(), id)
 		if err != nil {
 			rec, err = ctx.Client.GetRecord(ctx.Cmd.Context(), id)
 			if err != nil {
-				return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
+				return ctx.R.Failure(ctx.Meta, apiError(err))
 			}
 		}
-		if ctx.App.JSON {
-			return ctx.R.Success(ctx.Meta, rec, nil)
-		}
-		ctx.R.Human("ID:          %s\n", rec.ID)
-		ctx.R.Human("Title:       %s\n", rec.Metadata.Title)
-		ctx.R.Human("Status:      %s\n", rec.Status)
-		ctx.R.Human("Created:     %s\n", rec.CreatedAt)
-		ctx.R.Human("Updated:     %s\n", rec.UpdatedAt)
-		ctx.R.Human("Description: %s\n", rec.Metadata.Description)
-		return nil
+		return ctx.R.Render(ctx.Meta, rec, func() {
+			ctx.R.Human("ID:          %s\n", rec.ID)
+			ctx.R.Human("Title:       %s\n", rec.Metadata.Title)
+			ctx.R.Human("Status:      %s\n", rec.Status)
+			ctx.R.Human("Created:     %s\n", rec.CreatedAt)
+			ctx.R.Human("Updated:     %s\n", rec.UpdatedAt)
+			ctx.R.Human("Description: %s\n", rec.Metadata.Description)
+		})
 	}),
 }
 
@@ -140,25 +135,25 @@ Requires --confirm because this operation is irreversible.`,
 	Example: "  zenodo records delete 12345 --confirm",
 	Args:    cobra.ExactArgs(1),
 	RunE: withAuth("records.delete", func(ctx *CmdContext) error {
-		if err := enforceReadOnly(&ctx.R, ctx.Meta, ctx.App); err != nil {
-			return err
-		}
-		if err := requireConfirm(&ctx.R, ctx.Meta, ctx.App); err != nil {
-			return err
-		}
 		id := ctx.Args[0]
-		if ctx.App.DryRun {
-			ctx.R.Human("Would delete draft %s\n", id)
-			return ctx.R.Success(ctx.Meta, map[string]any{"planned": true, "id": id, "action": "delete_draft"}, nil)
+		proceed, err := ctx.Gate.Allow(RiskHighWrite, Plan{
+			Action:    "delete_draft",
+			HumanMsg:  "Would delete draft %s\n",
+			HumanArgs: []any{id},
+			Data:      map[string]any{"id": id},
+		})
+		if err != nil {
+			return err
+		}
+		if !proceed {
+			return nil
 		}
 		if err := ctx.Client.DeleteDraft(ctx.Cmd.Context(), id); err != nil {
-			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
+			return ctx.R.Failure(ctx.Meta, apiError(err))
 		}
-		if ctx.App.JSON {
-			return ctx.R.Success(ctx.Meta, map[string]any{"deleted": id}, nil)
-		}
-		ctx.R.Human("Deleted draft %s\n", id)
-		return nil
+		return ctx.R.Render(ctx.Meta, map[string]any{"deleted": id}, func() {
+			ctx.R.Human("Deleted draft %s\n", id)
+		})
 	}),
 }
 
@@ -171,26 +166,26 @@ This is irreversible. Once published, a record cannot be unpublished or deleted.
 	Example: "  zenodo records publish 12345 --confirm",
 	Args:    cobra.ExactArgs(1),
 	RunE: withAuth("records.publish", func(ctx *CmdContext) error {
-		if err := enforceReadOnly(&ctx.R, ctx.Meta, ctx.App); err != nil {
-			return err
-		}
-		if err := requireConfirm(&ctx.R, ctx.Meta, ctx.App); err != nil {
-			return err
-		}
 		id := ctx.Args[0]
-		if ctx.App.DryRun {
-			ctx.R.Human("Would publish draft %s (irreversible)\n", id)
-			return ctx.R.Success(ctx.Meta, map[string]any{"planned": true, "id": id, "action": "publish_draft"}, nil)
+		proceed, err := ctx.Gate.Allow(RiskHighWrite, Plan{
+			Action:    "publish_draft",
+			HumanMsg:  "Would publish draft %s (irreversible)\n",
+			HumanArgs: []any{id},
+			Data:      map[string]any{"id": id},
+		})
+		if err != nil {
+			return err
+		}
+		if !proceed {
+			return nil
 		}
 		rec, err := ctx.Client.PublishDraft(ctx.Cmd.Context(), id)
 		if err != nil {
-			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
+			return ctx.R.Failure(ctx.Meta, apiError(err))
 		}
-		if ctx.App.JSON {
-			return ctx.R.Success(ctx.Meta, rec, nil)
-		}
-		ctx.R.Human("Published %s: %s\n", rec.ID, rec.Metadata.Title)
-		return nil
+		return ctx.R.Render(ctx.Meta, rec, func() {
+			ctx.R.Human("Published %s: %s\n", rec.ID, rec.Metadata.Title)
+		})
 	}),
 }
 
@@ -204,23 +199,26 @@ modify it and publish it as a new version.`,
 	Example: "  zenodo records new-version 12345",
 	Args:    cobra.ExactArgs(1),
 	RunE: withAuth("records.new-version", func(ctx *CmdContext) error {
-		if err := enforceReadOnly(&ctx.R, ctx.Meta, ctx.App); err != nil {
+		id := ctx.Args[0]
+		proceed, err := ctx.Gate.Allow(RiskMediumWrite, Plan{
+			Action:    "new_version",
+			HumanMsg:  "Would create new version draft from %s\n",
+			HumanArgs: []any{id},
+			Data:      map[string]any{"id": id},
+		})
+		if err != nil {
 			return err
 		}
-		id := ctx.Args[0]
-		if ctx.App.DryRun {
-			ctx.R.Human("Would create new version draft from %s\n", id)
-			return ctx.R.Success(ctx.Meta, map[string]any{"planned": true, "id": id, "action": "new_version"}, nil)
+		if !proceed {
+			return nil
 		}
 		rec, err := ctx.Client.NewVersion(ctx.Cmd.Context(), id)
 		if err != nil {
-			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
+			return ctx.R.Failure(ctx.Meta, apiError(err))
 		}
-		if ctx.App.JSON {
-			return ctx.R.Success(ctx.Meta, rec, nil)
-		}
-		ctx.R.Human("Created new version %s (from %s)\n", rec.ID, id)
-		return nil
+		return ctx.R.Render(ctx.Meta, rec, func() {
+			ctx.R.Human("Created new version %s (from %s)\n", rec.ID, id)
+		})
 	}),
 }
 
@@ -235,16 +233,14 @@ var recordsVersionsCmd = &cobra.Command{
 		id := ctx.Args[0]
 		resp, err := ctx.Client.ListVersions(ctx.Cmd.Context(), id)
 		if err != nil {
-			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
+			return ctx.R.Failure(ctx.Meta, apiError(err))
 		}
-		if ctx.App.JSON {
-			return ctx.R.Success(ctx.Meta, resp.Hits, nil)
-		}
-		for _, rec := range resp.Hits.Hits {
-			ctx.R.Human("[%s] %s (%s)\n", rec.ID, rec.Metadata.Title, rec.Status)
-		}
-		ctx.R.Human("\nTotal: %d versions\n", resp.Hits.Total)
-		return nil
+		return ctx.R.Render(ctx.Meta, resp.Hits, func() {
+			for _, rec := range resp.Hits.Hits {
+				ctx.R.Human("[%s] %s (%s)\n", rec.ID, rec.Metadata.Title, rec.Status)
+			}
+			ctx.R.Human("\nTotal: %d versions\n", resp.Hits.Total)
+		})
 	}),
 }
 
@@ -257,23 +253,26 @@ The reserved DOI can be cited immediately, even before the record is published.`
 	Example: "  zenodo records reserve-doi 12345",
 	Args:    cobra.ExactArgs(1),
 	RunE: withAuth("records.reserve-doi", func(ctx *CmdContext) error {
-		if err := enforceReadOnly(&ctx.R, ctx.Meta, ctx.App); err != nil {
+		id := ctx.Args[0]
+		proceed, err := ctx.Gate.Allow(RiskMediumWrite, Plan{
+			Action:    "reserve_doi",
+			HumanMsg:  "Would reserve DOI for %s\n",
+			HumanArgs: []any{id},
+			Data:      map[string]any{"id": id},
+		})
+		if err != nil {
 			return err
 		}
-		id := ctx.Args[0]
-		if ctx.App.DryRun {
-			ctx.R.Human("Would reserve DOI for %s\n", id)
-			return ctx.R.Success(ctx.Meta, map[string]any{"planned": true, "id": id, "action": "reserve_doi"}, nil)
+		if !proceed {
+			return nil
 		}
 		rec, err := ctx.Client.ReserveDOI(ctx.Cmd.Context(), id)
 		if err != nil {
-			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
+			return ctx.R.Failure(ctx.Meta, apiError(err))
 		}
-		if ctx.App.JSON {
-			return ctx.R.Success(ctx.Meta, rec, nil)
-		}
-		ctx.R.Human("Reserved DOI for %s\n", rec.ID)
-		return nil
+		return ctx.R.Render(ctx.Meta, rec, func() {
+			ctx.R.Human("Reserved DOI for %s\n", rec.ID)
+		})
 	}),
 }
 
@@ -287,37 +286,32 @@ Use --community to specify the community identifier.`,
   zenodo records submit 12345 --community my-community --confirm`,
 	Args: cobra.ExactArgs(1),
 	RunE: withAuth("records.submit", func(ctx *CmdContext) error {
-		if err := enforceReadOnly(&ctx.R, ctx.Meta, ctx.App); err != nil {
-			return err
-		}
 		community, _ := ctx.Cmd.Flags().GetString("community")
 		if community == "" {
 			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrValidationFailed, "--community is required"))
 		}
-		if err := requireConfirm(&ctx.R, ctx.Meta, ctx.App); err != nil {
+		id := ctx.Args[0]
+		proceed, err := ctx.Gate.Allow(RiskHighWrite, Plan{
+			Action:    "submit_to_community",
+			HumanMsg:  "Would submit %s to community %s\n",
+			HumanArgs: []any{id, community},
+			Data:      map[string]any{"id": id, "community": community},
+		})
+		if err != nil {
 			return err
 		}
-		id := ctx.Args[0]
-		if ctx.App.DryRun {
-			ctx.R.Human("Would submit %s to community %s\n", id, community)
-			return ctx.R.Success(ctx.Meta, map[string]any{
-				"planned":   true,
-				"id":        id,
-				"community": community,
-				"action":    "submit_to_community",
-			}, nil)
+		if !proceed {
+			return nil
 		}
 		if err := ctx.Client.SubmitToCommunity(ctx.Cmd.Context(), id, community); err != nil {
-			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
+			return ctx.R.Failure(ctx.Meta, apiError(err))
 		}
-		if ctx.App.JSON {
-			return ctx.R.Success(ctx.Meta, map[string]any{
-				"id":        id,
-				"community": community,
-			}, nil)
-		}
-		ctx.R.Human("Submitted %s to community %s for review\n", id, community)
-		return nil
+		return ctx.R.Render(ctx.Meta, map[string]any{
+			"id":        id,
+			"community": community,
+		}, func() {
+			ctx.R.Human("Submitted %s to community %s for review\n", id, community)
+		})
 	}),
 }
 
@@ -338,16 +332,14 @@ requests related to a specific record.`,
 		}
 		resp, err := ctx.Client.ListRequests(ctx.Cmd.Context(), query)
 		if err != nil {
-			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
+			return ctx.R.Failure(ctx.Meta, apiError(err))
 		}
-		if ctx.App.JSON {
-			return ctx.R.Success(ctx.Meta, resp.Hits, nil)
-		}
-		for _, rec := range resp.Hits.Hits {
-			ctx.R.Human("[%s] %s (%s)\n", rec.ID, rec.Metadata.Title, rec.Status)
-		}
-		ctx.R.Human("\nTotal: %d\n", resp.Hits.Total)
-		return nil
+		return ctx.R.Render(ctx.Meta, resp.Hits, func() {
+			for _, rec := range resp.Hits.Hits {
+				ctx.R.Human("[%s] %s (%s)\n", rec.ID, rec.Metadata.Title, rec.Status)
+			}
+			ctx.R.Human("\nTotal: %d\n", resp.Hits.Total)
+		})
 	}),
 }
 

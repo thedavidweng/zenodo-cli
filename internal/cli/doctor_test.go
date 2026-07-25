@@ -121,7 +121,7 @@ profiles:
     token: ""
     base_url: https://zenodo.org
 `
-	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0600); err != nil {
+	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0o600); err != nil {
 		t.Fatalf("write config: %v", err)
 	}
 
@@ -155,7 +155,7 @@ profiles:
     token: some-token
     base_url: https://zenodo.org
 `
-	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0600); err != nil {
+	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0o600); err != nil {
 		t.Fatalf("write config: %v", err)
 	}
 
@@ -188,11 +188,9 @@ func TestDoctorRunAllPass(t *testing.T) {
 profiles:
   test:
     token: %s
-    base_url: https://zenodo.org
-    endpoints:
-      api: %s
+    base_url: %s
 `, token, fz.URL())
-	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0600); err != nil {
+	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0o600); err != nil {
 		t.Fatalf("write config: %v", err)
 	}
 
@@ -223,11 +221,9 @@ func TestDoctorJSONAllPass(t *testing.T) {
 profiles:
   test:
     token: %s
-    base_url: https://zenodo.org
-    endpoints:
-      api: %s
+    base_url: %s
 `, token, fz.URL())
-	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0600); err != nil {
+	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0o600); err != nil {
 		t.Fatalf("write config: %v", err)
 	}
 
@@ -270,11 +266,9 @@ func TestDoctorRunAPIFail(t *testing.T) {
 profiles:
   test:
     token: some-token
-    base_url: https://zenodo.org
-    endpoints:
-      api: %s
+    base_url: %s
 `, failServer.URL)
-	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0600); err != nil {
+	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0o600); err != nil {
 		t.Fatalf("write config: %v", err)
 	}
 
@@ -316,11 +310,9 @@ func TestDoctorHumanOutputPartialFail(t *testing.T) {
 profiles:
   test:
     token: some-token
-    base_url: https://zenodo.org
-    endpoints:
-      api: %s
+    base_url: %s
 `, failServer.URL)
-	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0600); err != nil {
+	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0o600); err != nil {
 		t.Fatalf("write config: %v", err)
 	}
 

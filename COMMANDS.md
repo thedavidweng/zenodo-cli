@@ -80,4 +80,4 @@ zenodo records list --sandbox
 export ZENODO_SANDBOX=1
 ```
 
-See [Authentication](auth.md) for full auth details.
+See [Authentication](docs/auth.md) for full auth details.

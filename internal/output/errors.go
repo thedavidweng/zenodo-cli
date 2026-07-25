@@ -6,7 +6,6 @@ import (
 	"github.com/thedavidweng/zenodo-cli/internal/model"
 )
 
-// CategoryForCode maps an error code to a human-readable category.
 func CategoryForCode(code string) string {
 	switch code {
 	case model.ErrAuthRequired, model.ErrAuthFailed:
@@ -32,13 +31,11 @@ func CategoryForCode(code string) string {
 	}
 }
 
-// retryableCodes lists error codes that are retryable.
 var retryableCodes = map[string]bool{
 	model.ErrNetwork:   true,
 	model.ErrZenodoAPI: true,
 }
 
-// Errorf creates an ErrorBody with the given code and formatted message.
 func Errorf(code, format string, args ...any) model.ErrorBody {
 	return model.ErrorBody{
 		Code:      code,
@@ -48,7 +45,6 @@ func Errorf(code, format string, args ...any) model.ErrorBody {
 	}
 }
 
-// ErrorWithDetails creates an ErrorBody with the given code, message, and details.
 func ErrorWithDetails(code, message string, details map[string]any) model.ErrorBody {
 	return model.ErrorBody{
 		Code:      code,

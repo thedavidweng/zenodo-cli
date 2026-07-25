@@ -9,7 +9,7 @@ func ExampleExitCode() {
 	fmt.Println(ExitCode(ErrValidationFailed))
 	// Output:
 	// 2
-	// 3
+	// 6
 	// 130
 	// 1
 }

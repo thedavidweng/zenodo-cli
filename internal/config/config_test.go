@@ -47,7 +47,7 @@ profiles:
     sandbox: false
     base_url: "https://zenodo.org/api"
 `
-	if err := os.WriteFile(path, []byte(yaml), 0600); err != nil {
+	if err := os.WriteFile(path, []byte(yaml), 0o600); err != nil {
 		t.Fatalf("write: %v", err)
 	}
 
@@ -66,7 +66,7 @@ profiles:
 func TestLoadInvalidYAML(t *testing.T) {
 	dir := tempDir(t)
 	path := filepath.Join(dir, "config.yaml")
-	if err := os.WriteFile(path, []byte("  - :\n\tbad: [}"), 0600); err != nil {
+	if err := os.WriteFile(path, []byte("  - :\n\tbad: [}"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 
@@ -84,10 +84,9 @@ func TestSaveAndLoadRoundTrip(t *testing.T) {
 		CurrentProfile: "sandbox",
 		Profiles: map[string]*Profile{
 			"sandbox": {
-				Token:     "test-token",
-				Sandbox:   true,
-				BaseURL:   "https://sandbox.zenodo.org/api",
-				Endpoints: Endpoints{API: "https://sandbox.zenodo.org/api"},
+				Token:   "test-token",
+				Sandbox: true,
+				BaseURL: "https://sandbox.zenodo.org/api",
 			},
 		},
 	}
@@ -107,8 +106,8 @@ func TestSaveAndLoadRoundTrip(t *testing.T) {
 	if loaded.Profiles["sandbox"].Token != "test-token" {
 		t.Errorf("token = %q, want test-token", loaded.Profiles["sandbox"].Token)
 	}
-	if loaded.Profiles["sandbox"].Endpoints.API != "https://sandbox.zenodo.org/api" {
-		t.Errorf("endpoints.api = %q", loaded.Profiles["sandbox"].Endpoints.API)
+	if loaded.Profiles["sandbox"].BaseURL != "https://sandbox.zenodo.org/api" {
+		t.Errorf("base_url = %q", loaded.Profiles["sandbox"].BaseURL)
 	}
 }
 
@@ -129,7 +128,7 @@ func TestSaveCreatesDirWith0700(t *testing.T) {
 		t.Fatalf("stat: %v", err)
 	}
 	perm := info.Mode().Perm()
-	if perm != 0700 {
+	if perm != 0o700 {
 		t.Errorf("dir perm = %o, want 0700", perm)
 	}
 }
@@ -151,7 +150,7 @@ func TestSaveFilePerms0600(t *testing.T) {
 		t.Fatalf("stat: %v", err)
 	}
 	perm := info.Mode().Perm()
-	if perm != 0600 {
+	if perm != 0o600 {
 		t.Errorf("file perm = %o, want 0600", perm)
 	}
 }
@@ -229,31 +228,6 @@ func TestGetProfile(t *testing.T) {
 	}
 }
 
-func TestGetProfileOrNil(t *testing.T) {
-	cfg := &Config{
-		CurrentProfile: "default",
-		Profiles: map[string]*Profile{
-			"default": {Token: "abc"},
-			"sb":      {Token: "xyz"},
-		},
-	}
-
-	// Named profile.
-	if p := cfg.GetProfileOrNil("sb"); p == nil || p.Token != "xyz" {
-		t.Errorf("GetProfileOrNil(sb) = %v, want token xyz", p)
-	}
-
-	// Empty name uses current profile.
-	if p := cfg.GetProfileOrNil(""); p == nil || p.Token != "abc" {
-		t.Errorf("GetProfileOrNil(\"\") = %v, want token abc", p)
-	}
-
-	// Missing profile returns nil.
-	if p := cfg.GetProfileOrNil("nonexistent"); p != nil {
-		t.Errorf("GetProfileOrNil(nonexistent) = %v, want nil", p)
-	}
-}
-
 func TestSetProfile(t *testing.T) {
 	cfg := &Config{Profiles: map[string]*Profile{}}
 
@@ -297,7 +271,7 @@ func TestLoadOrCreateInvalidYAML(t *testing.T) {
 	path := filepath.Join(dir, "config.yaml")
 
 	// Write a file that exists but contains invalid YAML.
-	if err := os.WriteFile(path, []byte("  - :\n\tbad: [}"), 0600); err != nil {
+	if err := os.WriteFile(path, []byte("  - :\n\tbad: [}"), 0o600); err != nil {
 		t.Fatalf("write: %v", err)
 	}
 
@@ -331,7 +305,7 @@ func TestLoadNilProfilesInit(t *testing.T) {
 	// Write YAML that is valid but has no "profiles" key, so Profiles will be nil after unmarshal.
 	yamlContent := `current_profile: default
 `
-	if err := os.WriteFile(path, []byte(yamlContent), 0600); err != nil {
+	if err := os.WriteFile(path, []byte(yamlContent), 0o600); err != nil {
 		t.Fatalf("write: %v", err)
 	}
 

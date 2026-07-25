@@ -5,6 +5,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -14,7 +15,6 @@ import (
 	"github.com/thedavidweng/zenodo-cli/internal/zenodo"
 )
 
-// __testNow returns a fixed time for testing.
 func __testNow() time.Time {
 	return time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 }
@@ -84,73 +84,85 @@ func TestRequireAuthWithoutToken(t *testing.T) {
 	}
 }
 
-func TestRequireConfirmWithFlag(t *testing.T) {
+func TestGateAllowReadTier(t *testing.T) {
 	var out bytes.Buffer
 	r := output.Renderer{Out: &out, Err: &out}
 	meta := output.RuntimeMetaInput{Command: "test"}
-	app := &AppContext{Confirm: true}
+	app := &AppContext{}
+	g := newGate(app, &r, meta)
 
-	err := requireConfirm(&r, meta, app)
+	proceed, err := g.Allow(RiskRead, Plan{})
 	if err != nil {
-		t.Errorf("expected no error with confirm, got: %v", err)
+		t.Errorf("RiskRead should always proceed: %v", err)
+	}
+	if !proceed {
+		t.Error("RiskRead should proceed")
 	}
 }
 
-func TestRequireConfirmWithoutFlag(t *testing.T) {
-	var out, errBuf bytes.Buffer
-	r := output.Renderer{Out: &out, Err: &errBuf, JSON: true}
-	meta := output.RuntimeMetaInput{Command: "test"}
-	app := &AppContext{Confirm: false}
-
-	err := requireConfirm(&r, meta, app)
-	if err == nil {
-		t.Error("expected error without confirm")
-	}
-}
-
-func TestRequireReadOnlyWithFlag(t *testing.T) {
+func TestGateAllowMediumWriteBlockedByReadOnly(t *testing.T) {
 	var out, errBuf bytes.Buffer
 	r := output.Renderer{Out: &out, Err: &errBuf, JSON: true}
 	meta := output.RuntimeMetaInput{Command: "test"}
 	app := &AppContext{ReadOnly: true}
+	g := newGate(app, &r, meta)
 
-	err := enforceReadOnly(&r, meta, app)
+	_, err := g.Allow(RiskMediumWrite, Plan{HumanMsg: "Would test\n"})
 	if err == nil {
-		t.Error("expected error when read-only is set")
+		t.Error("expected error when read-only blocks medium-write")
 	}
 }
 
-func TestRequireReadOnlyWithoutFlag(t *testing.T) {
+func TestGateAllowHighWriteRequiresConfirm(t *testing.T) {
+	var out, errBuf bytes.Buffer
+	r := output.Renderer{Out: &out, Err: &errBuf, JSON: true}
+	meta := output.RuntimeMetaInput{Command: "test"}
+	app := &AppContext{Confirm: false}
+	g := newGate(app, &r, meta)
+
+	_, err := g.Allow(RiskHighWrite, Plan{HumanMsg: "Would test\n"})
+	if err == nil {
+		t.Error("expected error when high-write lacks --confirm")
+	}
+}
+
+func TestGateAllowHighWriteWithConfirm(t *testing.T) {
 	var out bytes.Buffer
 	r := output.Renderer{Out: &out, Err: &out}
 	meta := output.RuntimeMetaInput{Command: "test"}
-	app := &AppContext{ReadOnly: false}
+	app := &AppContext{Confirm: true}
+	g := newGate(app, &r, meta)
 
-	err := enforceReadOnly(&r, meta, app)
+	proceed, err := g.Allow(RiskHighWrite, Plan{HumanMsg: "Would test\n"})
 	if err != nil {
-		t.Errorf("expected no error when read-only is not set, got: %v", err)
+		t.Errorf("expected no error with confirm, got: %v", err)
+	}
+	if !proceed {
+		t.Error("expected to proceed with confirm")
 	}
 }
 
-func TestParseJSONValid(t *testing.T) {
-	var result map[string]any
-	err := parseJSON(`{"key":"value","num":42}`, &result)
-	if err != nil {
-		t.Fatalf("parseJSON: %v", err)
-	}
-	if result["key"] != "value" {
-		t.Errorf("key = %v, want value", result["key"])
-	}
-	if result["num"] != float64(42) {
-		t.Errorf("num = %v, want 42", result["num"])
-	}
-}
+func TestGateAllowDryRunEmitsPlan(t *testing.T) {
+	var out bytes.Buffer
+	r := output.Renderer{Out: &out, Err: &out}
+	meta := output.RuntimeMetaInput{Command: "test"}
+	app := &AppContext{DryRun: true, Confirm: true}
+	g := newGate(app, &r, meta)
 
-func TestParseJSONInvalid(t *testing.T) {
-	var result map[string]any
-	err := parseJSON("not-json{{{", &result)
-	if err == nil {
-		t.Error("expected error for invalid JSON")
+	proceed, err := g.Allow(RiskHighWrite, Plan{
+		Action:    "delete_draft",
+		HumanMsg:  "Would delete %s\n",
+		HumanArgs: []any{"12345"},
+		Data:      map[string]any{"id": "12345"},
+	})
+	if err != nil {
+		t.Fatalf("dry-run should not error: %v", err)
+	}
+	if proceed {
+		t.Error("dry-run should not proceed")
+	}
+	if !strings.Contains(out.String(), "Would delete 12345") {
+		t.Errorf("expected 'Would delete 12345' in output: %s", out.String())
 	}
 }
 
@@ -219,8 +231,8 @@ func TestGetClientWithSandboxOverride(t *testing.T) {
 	if err != nil {
 		t.Fatalf("getClient: %v", err)
 	}
-	// Sandbox override should set BaseURL to sandbox, but Endpoints.API overrides it
-	// so the client should still use the fake server URL
+	// Sandbox override only swaps when base_url is the default, so the client
+	// should still use the fake server URL.
 	if client.BaseURL != fz.URL() {
 		t.Errorf("BaseURL = %q, want %q (endpoint override)", client.BaseURL, fz.URL())
 	}
@@ -237,7 +249,7 @@ profiles:
     token: some-token
     base_url: https://sandbox.zenodo.org
 `
-	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0600); err != nil {
+	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0o600); err != nil {
 		t.Fatalf("write config: %v", err)
 	}
 
@@ -262,33 +274,6 @@ profiles:
 func TestWithAuthGetClientError(t *testing.T) {
 	// withAuth should return error when getClient fails (nonexistent config)
 	wrapped := withAuth("test.command", func(ctx *CmdContext) error {
-		t.Error("handler should not be called")
-		return nil
-	})
-
-	app := &AppContext{
-		ConfigFile: "/nonexistent/config.yaml",
-		Profile:    "test",
-		Timeout:    30 * time.Second,
-		Retries:    0,
-		StartedAt:  time.Now(),
-		RequestID:  "test",
-	}
-
-	cmd := &cobra.Command{Use: "test"}
-	cmd.SetOut(&bytes.Buffer{})
-	cmd.SetErr(&bytes.Buffer{})
-	ctx := WithAppContext(context.Background(), app)
-	cmd.SetContext(ctx)
-
-	err := wrapped(cmd, nil)
-	if err == nil {
-		t.Error("expected error when getClient fails")
-	}
-}
-
-func TestWithClientGetClientError(t *testing.T) {
-	wrapped := withClient("test.command", func(ctx *CmdContext) error {
 		t.Error("handler should not be called")
 		return nil
 	})

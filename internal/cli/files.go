@@ -1,12 +1,10 @@
 package cli
 
 import (
+	"fmt"
 	"path/filepath"
 
 	"github.com/spf13/cobra"
-
-	"github.com/thedavidweng/zenodo-cli/internal/model"
-	"github.com/thedavidweng/zenodo-cli/internal/output"
 )
 
 var filesCmd = &cobra.Command{
@@ -27,27 +25,24 @@ The record must be a draft (not published).`,
   zenodo files upload 12345 *.csv --dry-run`,
 	Args: cobra.MinimumNArgs(2),
 	RunE: withAuth("files.upload", func(ctx *CmdContext) error {
-		if err := enforceReadOnly(&ctx.R, ctx.Meta, ctx.App); err != nil {
-			return err
-		}
 		id := ctx.Args[0]
 		files := ctx.Args[1:]
 
-		if ctx.App.DryRun {
-			for _, filePath := range files {
-				ctx.R.Human("Would upload %s to %s\n", filePath, id)
-			}
-			return ctx.R.Success(ctx.Meta, map[string]any{
-				"planned":   true,
-				"record_id": id,
-				"files":     files,
-				"count":     len(files),
-			}, nil)
+		proceed, err := ctx.Gate.Allow(RiskMediumWrite, Plan{
+			HumanMsg:  "Would upload %s to %s\n",
+			HumanArgs: []any{files[0], id},
+			Data:      map[string]any{"record_id": id, "files": files, "count": len(files)},
+		})
+		if err != nil {
+			return err
+		}
+		if !proceed {
+			return nil
 		}
 
 		for _, filePath := range files {
 			if err := ctx.Client.UploadFile(ctx.Cmd.Context(), id, filePath); err != nil {
-				return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "uploading %s: %v", filePath, err))
+				return ctx.R.Failure(ctx.Meta, apiError(fmt.Errorf("uploading %s: %w", filePath, err)))
 			}
 			ctx.R.Human("Uploaded %s\n", filepath.Base(filePath))
 		}
@@ -77,22 +72,19 @@ to the published file list.`,
 		id := ctx.Args[0]
 		files, err := ctx.Client.ListFiles(ctx.Cmd.Context(), id)
 		if err != nil {
-			// Fall back to published files
 			files, err = ctx.Client.ListPublishedFiles(ctx.Cmd.Context(), id)
 			if err != nil {
-				return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
+				return ctx.R.Failure(ctx.Meta, apiError(err))
 			}
 		}
-		if ctx.App.JSON {
-			return ctx.R.Success(ctx.Meta, map[string]any{
-				"record_id": id,
-				"files":     files,
-			}, nil)
-		}
-		for _, f := range files {
-			ctx.R.Human("%s (%d bytes)\n", f.Key, f.Size)
-		}
-		return nil
+		return ctx.R.Render(ctx.Meta, map[string]any{
+			"record_id": id,
+			"files":     files,
+		}, func() {
+			for _, f := range files {
+				ctx.R.Human("%s (%d bytes)\n", f.Key, f.Size)
+			}
+		})
 	}),
 }
 
@@ -106,29 +98,24 @@ Only works on draft records. Published records cannot have files removed.`,
   zenodo files delete 12345 data.csv results.json --confirm`,
 	Args: cobra.MinimumNArgs(2),
 	RunE: withAuth("files.delete", func(ctx *CmdContext) error {
-		if err := enforceReadOnly(&ctx.R, ctx.Meta, ctx.App); err != nil {
-			return err
-		}
-		if err := requireConfirm(&ctx.R, ctx.Meta, ctx.App); err != nil {
-			return err
-		}
 		id := ctx.Args[0]
 		filenames := ctx.Args[1:]
 
-		if ctx.App.DryRun {
-			for _, name := range filenames {
-				ctx.R.Human("Would delete %s from %s\n", name, id)
-			}
-			return ctx.R.Success(ctx.Meta, map[string]any{
-				"planned":   true,
-				"record_id": id,
-				"files":     filenames,
-			}, nil)
+		proceed, err := ctx.Gate.Allow(RiskHighWrite, Plan{
+			HumanMsg:  "Would delete %s from %s\n",
+			HumanArgs: []any{filenames[0], id},
+			Data:      map[string]any{"record_id": id, "files": filenames},
+		})
+		if err != nil {
+			return err
+		}
+		if !proceed {
+			return nil
 		}
 
 		for _, name := range filenames {
 			if err := ctx.Client.DeleteFile(ctx.Cmd.Context(), id, name); err != nil {
-				return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "deleting %s: %v", name, err))
+				return ctx.R.Failure(ctx.Meta, apiError(fmt.Errorf("deleting %s: %w", name, err)))
 			}
 			ctx.R.Human("Deleted %s\n", name)
 		}
@@ -166,7 +153,7 @@ Use --latest to resolve the latest published version before downloading.`,
 		if latest {
 			resolved, err := ctx.Client.ResolveLatest(ctx.Cmd.Context(), id)
 			if err != nil {
-				return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "resolving latest version: %v", err))
+				return ctx.R.Failure(ctx.Meta, apiError(fmt.Errorf("resolving latest version: %w", err)))
 			}
 			if resolved != id {
 				ctx.R.Human("Resolved latest version: %s -> %s\n", id, resolved)
@@ -174,27 +161,27 @@ Use --latest to resolve the latest published version before downloading.`,
 			}
 		}
 
-		if ctx.App.DryRun {
-			ctx.R.Human("Would download files from %s to %s\n", id, dest)
-			return ctx.R.Success(ctx.Meta, map[string]any{
-				"planned":   true,
-				"record_id": id,
-				"dest":      dest,
-			}, nil)
+		proceed, err := ctx.Gate.Allow(RiskRead, Plan{
+			HumanMsg:  "Would download files from %s to %s\n",
+			HumanArgs: []any{id, dest},
+			Data:      map[string]any{"record_id": id, "dest": dest},
+		})
+		if err != nil {
+			return err
+		}
+		if !proceed {
+			return nil
 		}
 
 		if err := ctx.Client.DownloadRecord(ctx.Cmd.Context(), id, dest); err != nil {
-			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
+			return ctx.R.Failure(ctx.Meta, apiError(err))
 		}
-
-		if ctx.App.JSON {
-			return ctx.R.Success(ctx.Meta, map[string]any{
-				"record_id": id,
-				"dest":      dest,
-			}, nil)
-		}
-		ctx.R.Human("Downloaded files from %s to %s\n", id, dest)
-		return nil
+		return ctx.R.Render(ctx.Meta, map[string]any{
+			"record_id": id,
+			"dest":      dest,
+		}, func() {
+			ctx.R.Human("Downloaded files from %s to %s\n", id, dest)
+		})
 	}),
 }
 
@@ -210,15 +197,13 @@ var filesInfoCmd = &cobra.Command{
 		filename := ctx.Args[1]
 		f, err := ctx.Client.GetFile(ctx.Cmd.Context(), id, filename)
 		if err != nil {
-			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
+			return ctx.R.Failure(ctx.Meta, apiError(err))
 		}
-		if ctx.App.JSON {
-			return ctx.R.Success(ctx.Meta, f, nil)
-		}
-		ctx.R.Human("Key:      %s\n", f.Key)
-		ctx.R.Human("Size:     %d bytes\n", f.Size)
-		ctx.R.Human("Checksum: %s\n", f.Checksum)
-		return nil
+		return ctx.R.Render(ctx.Meta, f, func() {
+			ctx.R.Human("Key:      %s\n", f.Key)
+			ctx.R.Human("Size:     %d bytes\n", f.Size)
+			ctx.R.Human("Checksum: %s\n", f.Checksum)
+		})
 	}),
 }
 
@@ -233,29 +218,28 @@ without re-uploading them.`,
   zenodo files import 12345 --dry-run`,
 	Args: cobra.ExactArgs(1),
 	RunE: withAuth("files.import", func(ctx *CmdContext) error {
-		if err := enforceReadOnly(&ctx.R, ctx.Meta, ctx.App); err != nil {
+		id := ctx.Args[0]
+		proceed, err := ctx.Gate.Allow(RiskMediumWrite, Plan{
+			Action:    "files_import",
+			HumanMsg:  "Would import files from previous version into %s\n",
+			HumanArgs: []any{id},
+			Data:      map[string]any{"record_id": id},
+		})
+		if err != nil {
 			return err
 		}
-		id := ctx.Args[0]
-		if ctx.App.DryRun {
-			ctx.R.Human("Would import files from previous version into %s\n", id)
-			return ctx.R.Success(ctx.Meta, map[string]any{
-				"planned":   true,
-				"record_id": id,
-				"action":    "files_import",
-			}, nil)
+		if !proceed {
+			return nil
 		}
 		if err := ctx.Client.ImportFiles(ctx.Cmd.Context(), id); err != nil {
-			return ctx.R.Failure(ctx.Meta, output.Errorf(model.ErrZenodoAPI, "%v", err))
+			return ctx.R.Failure(ctx.Meta, apiError(err))
 		}
-		if ctx.App.JSON {
-			return ctx.R.Success(ctx.Meta, map[string]any{
-				"record_id": id,
-				"action":    "files_imported",
-			}, nil)
-		}
-		ctx.R.Human("Imported files from previous version into %s\n", id)
-		return nil
+		return ctx.R.Render(ctx.Meta, map[string]any{
+			"record_id": id,
+			"action":    "files_imported",
+		}, func() {
+			ctx.R.Human("Imported files from previous version into %s\n", id)
+		})
 	}),
 }
 

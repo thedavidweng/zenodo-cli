@@ -9,7 +9,6 @@ import (
 	"github.com/thedavidweng/zenodo-cli/internal/model"
 )
 
-// RuntimeMetaInput holds the runtime metadata for building an Envelope.Meta.
 type RuntimeMetaInput struct {
 	Command   string
 	Profile   string
@@ -17,7 +16,6 @@ type RuntimeMetaInput struct {
 	StartedAt time.Time
 }
 
-// Renderer writes structured or human-readable output.
 type Renderer struct {
 	Out     io.Writer
 	Err     io.Writer
@@ -28,17 +26,15 @@ type Renderer struct {
 	Quiet   bool
 }
 
-// Success writes a successful envelope.
 func (r *Renderer) Success(metaInput RuntimeMetaInput, data any, warnings []string) error {
 	env := model.Envelope{
 		OK:   true,
 		Data: data,
 		Meta: r.buildMeta(metaInput, warnings),
 	}
-	return r.writeJSON(env)
+	return r.writeJSON(&env)
 }
 
-// Failure writes an error envelope and returns a CommandError.
 func (r *Renderer) Failure(metaInput RuntimeMetaInput, errBody model.ErrorBody) error {
 	if !r.JSON {
 		_, _ = fmt.Fprintf(r.Err, "Error [%s]: %s\n", errBody.Code, errBody.Message)
@@ -52,14 +48,13 @@ func (r *Renderer) Failure(metaInput RuntimeMetaInput, errBody model.ErrorBody) 
 		Error: &errBody,
 		Meta:  r.buildMeta(metaInput, nil),
 	}
-	_ = r.writeJSON(env)
+	_ = r.writeJSON(&env)
 	return &model.CommandError{
 		Code:    errBody.Code,
 		Message: errBody.Message,
 	}
 }
 
-// Human writes a human-readable message to Out. Suppressed when Quiet is true.
 func (r *Renderer) Human(format string, args ...any) {
 	if r.Quiet {
 		return
@@ -67,25 +62,24 @@ func (r *Renderer) Human(format string, args ...any) {
 	_, _ = fmt.Fprintf(r.Out, format+"\n", args...)
 }
 
+// Render emits a JSON success envelope or calls human, depending on mode.
+func (r *Renderer) Render(meta RuntimeMetaInput, data any, human func()) error {
+	if r.JSON {
+		return r.Success(meta, data, nil)
+	}
+	human()
+	return nil
+}
+
 func (r *Renderer) buildMeta(input RuntimeMetaInput, warnings []string) model.Meta {
-	duration := time.Since(input.StartedAt)
 	return model.Meta{
 		Command:       input.Command,
 		Profile:       input.Profile,
-		DurationMS:    duration.Milliseconds(),
+		DurationMS:    time.Since(input.StartedAt).Milliseconds(),
 		SchemaVersion: model.SchemaVersion,
 		RequestID:     input.RequestID,
 		Warnings:      warnings,
 	}
-}
-
-// fullEnvelope mirrors model.Envelope but without omitempty, so all fields
-// (including null/empty) are always present in the JSON output.
-type fullEnvelope struct {
-	OK    bool             `json:"ok"`
-	Data  any              `json:"data"`
-	Error *model.ErrorBody `json:"error"`
-	Meta  fullMeta         `json:"meta"`
 }
 
 type fullMeta struct {
@@ -97,11 +91,16 @@ type fullMeta struct {
 	Warnings      []string `json:"warnings"`
 }
 
-func (r *Renderer) writeJSON(env model.Envelope) error {
-	var raw any
+type fullEnvelope struct {
+	OK    bool             `json:"ok"`
+	Data  any              `json:"data"`
+	Error *model.ErrorBody `json:"error"`
+	Meta  fullMeta         `json:"meta"`
+}
 
-	switch {
-	case r.Full:
+func (r *Renderer) writeJSON(env *model.Envelope) error {
+	var raw any = env
+	if r.Full {
 		warnings := env.Meta.Warnings
 		if warnings == nil {
 			warnings = []string{}
@@ -119,13 +118,6 @@ func (r *Renderer) writeJSON(env model.Envelope) error {
 				Warnings:      warnings,
 			},
 		}
-	case r.Compact:
-		if len(env.Meta.Warnings) == 0 {
-			env.Meta.Warnings = nil
-		}
-		raw = env
-	default:
-		raw = env
 	}
 
 	var b []byte

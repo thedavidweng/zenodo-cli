@@ -4,4 +4,7 @@ dist/
 /zenodo
 .claude/
 .env
-internal/.DS_Store
+.scratch/
+coverage.out
+coverage.html
+.DS_Store

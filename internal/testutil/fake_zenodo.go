@@ -543,18 +543,18 @@ func (fz *FakeZenodo) handleUploadFileContent(w http.ResponseWriter, r *http.Req
 	size := int64(len(body))
 	checksum := fmt.Sprintf("md5:%x", md5.Sum(body))
 
-	// Store the actual file content
 	rec.FileContents[filename] = body
 
 	found := false
 	for _, f := range rec.Files {
-		if f["key"] == filename {
-			f["size"] = size
-			f["checksum"] = checksum
-			f["status"] = "uploaded"
-			found = true
-			break
+		if f["key"] != filename {
+			continue
 		}
+		f["size"] = size
+		f["checksum"] = checksum
+		f["status"] = "uploaded"
+		found = true
+		break
 	}
 	if !found {
 		rec.Files = append(rec.Files, map[string]any{

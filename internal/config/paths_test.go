@@ -37,10 +37,11 @@ func TestDefaultConfigPathUsesXDG(t *testing.T) {
 	orig := os.Getenv("XDG_CONFIG_HOME")
 	defer func() { _ = os.Setenv("XDG_CONFIG_HOME", orig) }()
 
-	mustSetenv(t, "XDG_CONFIG_HOME", "/tmp/test-xdg-config")
+	xdg := "/tmp/test-xdg-config"
+	mustSetenv(t, "XDG_CONFIG_HOME", xdg)
 	path := DefaultConfigPath()
 
-	want := filepath.Join("/tmp/test-xdg-config", "zenodo-cli", "config.yaml")
+	want := filepath.Join(xdg, "zenodo-cli", "config.yaml")
 	if path != want {
 		t.Errorf("DefaultConfigPath() = %q, want %q", path, want)
 	}

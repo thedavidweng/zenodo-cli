@@ -21,7 +21,7 @@ If you discover a security vulnerability in `zenodo-cli`, please report it respo
 ## Design Decisions
 
 - **Token storage.** API tokens are stored in the OS config dir (`zenodo-cli/config.yaml`) with `0600` permissions.
-- **No token flags.** Tokens are never passed via `--token` flag on the command line. Use `--token-stdin` or `--token-env` for non-interactive use.
-- **Secret redaction.** Debug output and error messages redact tokens and credentials.
+- **Token input.** `zenodo auth login` accepts a token via the `--token` flag, the `ZENODO_TOKEN` environment variable, or an interactive prompt (used when neither is set and stdin is a terminal). Prefer `ZENODO_TOKEN` in automation to keep the token out of shell history.
+- **Secret redaction.** The stored token is never echoed to stdout, stderr, or the JSON envelope in any output mode.
 - **Safety gates.** `--read-only` blocks all write operations. `--dry-run` previews mutations without sending requests. `--confirm` is required for destructive operations.
 - **No telemetry.** `zenodo-cli` does not phone home, embed analytics, or send data to any server other than Zenodo/InvenioRDM.
