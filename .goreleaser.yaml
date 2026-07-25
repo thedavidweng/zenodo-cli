@@ -42,10 +42,9 @@ signs:
     cmd: cosign
     args:
       - sign-blob
-      - "--yes"
-      - "--output-signature=${signature}"
-      - "--output-certificate=${certificate}"
+      - "--bundle=${signature}"
       - "${artifact}"
+      - "--yes"
 
 sboms:
   - artifacts: archive
