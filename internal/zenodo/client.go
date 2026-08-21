@@ -134,7 +134,7 @@ func (c *Client) UploadFile(ctx context.Context, id, filePath string) error {
 	openFile := func() (io.ReadCloser, error) {
 		return os.Open(filePath)
 	}
-	if err := c.doRequest(ctx, http.MethodPut, "/api/records/"+id+"/draft/files/"+url.PathEscape(filename)+"/content", openFile, "application/octet-stream", nil); err != nil {
+	if err := c.doRequest(ctx, http.MethodPut, "/api/records/"+id+"/draft/files/"+url.PathEscape(filename)+"/content", openFile, "application/octet-stream", info.Size(), nil); err != nil {
 		return fmt.Errorf("upload content: %w", err)
 	}
 
@@ -260,7 +260,9 @@ func (c *Client) downloadFile(ctx context.Context, id, destdir, key string) erro
 		return fmt.Errorf("create request for %s: %w", key, err)
 	}
 	req.Header.Set("Authorization", "Bearer "+c.Token)
-	req.Header.Set("Accept", "application/octet-stream")
+	// Zenodo's content endpoint returns 406 for "application/octet-stream";
+	// content negotiation only accepts the browser-style default.
+	req.Header.Set("Accept", "*/*")
 
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
@@ -297,23 +299,26 @@ func (c *Client) Do(ctx context.Context, method, path string, body, result any) 
 }
 
 func (c *Client) do(ctx context.Context, method, path string, body, result any) error {
-	var openBody func() (io.ReadCloser, error)
-	if body != nil {
-		bodyBytes, err := json.Marshal(body)
-		if err != nil {
-			return fmt.Errorf("marshal body: %w", err)
-		}
-		openBody = func() (io.ReadCloser, error) {
-			return io.NopCloser(bytes.NewReader(bodyBytes)), nil
-		}
+	if body == nil {
+		return c.doRequest(ctx, method, path, nil, "application/json", -1, result)
 	}
-	return c.doRequest(ctx, method, path, openBody, "application/json", result)
+	bodyBytes, err := json.Marshal(body)
+	if err != nil {
+		return fmt.Errorf("marshal body: %w", err)
+	}
+	openBody := func() (io.ReadCloser, error) {
+		return io.NopCloser(bytes.NewReader(bodyBytes)), nil
+	}
+	return c.doRequest(ctx, method, path, openBody, "application/json", int64(len(bodyBytes)), result)
 }
 
 // doRequest calls openBody, when non-nil, once per attempt so a body reader closed
 // by the transport after a failed attempt can be reopened. Retry policy:
-// docs/adr/0001-retry-strategy.md.
-func (c *Client) doRequest(ctx context.Context, method, path string, openBody func() (io.ReadCloser, error), contentType string, result any) error {
+// docs/adr/0001-retry-strategy.md. A contentLength below zero streams the body
+// with chunked transfer encoding; Zenodo rejects chunked bodies on several
+// endpoints (e.g. file upload init fails with "_schema: No files to upload"),
+// so callers pass the real length whenever it is known.
+func (c *Client) doRequest(ctx context.Context, method, path string, openBody func() (io.ReadCloser, error), contentType string, contentLength int64, result any) error {
 	var lastErr error
 	for attempt := 0; attempt <= c.Retries; attempt++ {
 		if attempt > 0 {
@@ -342,6 +347,9 @@ func (c *Client) doRequest(ctx context.Context, method, path string, openBody fu
 			return fmt.Errorf("create request: %w", err)
 		}
 		c.setAuthHeaders(req, contentType)
+		if reqBody != nil {
+			req.ContentLength = contentLength
+		}
 
 		resp, err := c.HTTPClient.Do(req)
 		if err != nil {
