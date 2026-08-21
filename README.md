@@ -126,13 +126,33 @@ Remove config if desired: `rm -rf ~/.config/zenodo-cli`
 
 ## Documentation
 
+Organized by the [Diátaxis taxonomy](https://diataxis.fr/): tutorials teach, how-tos solve tasks, reference looks up, explanation explains.
+
+### Tutorials
+
+- [Getting Started](docs/tutorials/getting-started.md) — install, authenticate, create your first record
+
+### How-to Guides
+
+- [Publishing a Dataset](docs/how-to/publish-a-dataset.md) — metadata file, uploads, publish, DOI verification
+- [Publishing a New Version](docs/how-to/publish-a-new-version.md) — correct or extend a published record
+- [Finding and Downloading Data](docs/how-to/find-and-download-data.md) — search, inspect, download; no account needed
+- [Using Safety Gates](docs/how-to/use-safety-gates.md) — `--dry-run`, `--read-only`, `--confirm` in scripts and CI
+- [Calling the API Directly](docs/how-to/call-the-api-directly.md) — raw access to any InvenioRDM endpoint
+- [Testing in the Zenodo Sandbox](docs/how-to/test-in-sandbox.md) — rehearse on sandbox.zenodo.org
+- [Agent Guide](docs/agent-guide.md) — JSON mode, exit codes, error handling for scripts and bots
+
+### Reference
+
 - [Command Reference](COMMANDS.md) — all commands with flags, examples, and configuration
-- [Authentication](docs/auth.md) — token setup, profiles, sandbox mode
-- [Safety Model](docs/safety.md) — `--read-only`, `--dry-run`, `--confirm` gates
 - [JSON Contract](JSON_SCHEMA.md) — envelope schema, output modifiers
-- [Global Flags & Environment Variables](docs/flags.md) — all CLI flags and env vars
+- [Global Flags & Environment Variables](docs/flags.md) — every CLI flag and env var
+- [Authentication](docs/auth.md) — token setup, profiles, sandbox mode
+
+### Explanation
+
+- [Safety Model](docs/safety.md) — how and why the three safety gates layer
 - [Architecture](docs/ARCHITECTURE.md) — codebase structure and design decisions
-- [Agent Guide](docs/agent-guide.md) — scripting, JSON mode, exit codes
 
 ## Infrastructure
 

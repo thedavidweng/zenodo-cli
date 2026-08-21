@@ -8,7 +8,7 @@ Blocks all remote mutations. Commands that would modify Zenodo state return exit
 
 ```bash
 zenodo files upload ID file.csv --read-only
-# Error: read-only mode blocks mutation
+# Error [READ_ONLY_VIOLATION]: --read-only blocks this mutation
 ```
 
 ### --dry-run
@@ -47,7 +47,7 @@ These operations are destructive and irreversible. They are blocked unless
 ```bash
 # Blocked without --confirm
 zenodo records delete ID
-# Error: high-risk operation requires --confirm
+# Error [CONFIRMATION_REQUIRED]: use --confirm to proceed
 
 # Explicit confirmation
 zenodo records delete ID --confirm

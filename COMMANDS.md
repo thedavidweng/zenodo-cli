@@ -14,6 +14,7 @@ zenodo records list                                  # list your records
 zenodo records create --title "Title"                # create a draft record
 zenodo records create --metadata record.json         # create from JSON metadata file
 zenodo records show RECORD_ID                        # show record details
+zenodo records versions RECORD_ID                    # list all versions of a record
 zenodo records delete RECORD_ID --confirm            # delete a draft record
 zenodo records publish RECORD_ID --confirm           # publish a draft (irreversible)
 zenodo records new-version RECORD_ID                 # create a new draft version
@@ -21,17 +22,19 @@ zenodo records new-version RECORD_ID                 # create a new draft versio
 # Files
 zenodo files upload RECORD_ID file1.csv file2.csv    # upload files to a draft
 zenodo files list RECORD_ID                          # list files in a record
+zenodo files delete RECORD_ID FILE... --confirm      # delete files from a draft
+zenodo files import RECORD_ID                        # import files from previous version into a draft
 zenodo files download RECORD_ID --dest ./output      # download files from a published record
 
 # Search
 zenodo search "machine learning"                     # search public records
 zenodo search "climate data" --json | jq '.data.hits[].id'
 
-# API (direct access to any Zenodo InvenioRDM endpoint)
+# API (direct access to any Zenodo InvenioRDM endpoint; paths must start with /api)
 zenodo api get /api/records                          # GET request
-zenodo api get records?q=climate                     # path prefix added automatically
-zenodo api post /api/records --data '{"metadata":{"title":"Test"}}'
-zenodo api put /api/records/ID/draft --data '{"metadata":{...}}'
+zenodo api get '/api/records?q=climate'              # query strings work too
+zenodo api post /api/records --data '{"metadata":{"title":"Test"}}' --confirm
+zenodo api put /api/records/ID/draft --data '{"metadata":{...}}' --confirm
 
 # Doctor
 zenodo doctor                                        # check config, profile, and token
