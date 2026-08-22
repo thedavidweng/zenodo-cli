@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.2.1](https://github.com/thedavidweng/zenodo-cli/compare/v0.2.0...v0.2.1) (2026-08-22)
+
+
+### Bug Fixes
+
+* send Content-Length on API requests and accept any type on downloads ([c37516c](https://github.com/thedavidweng/zenodo-cli/commit/c37516c48d318acd735d9dca021cf77c525bd939))
+
+
+### Documentation
+
+* organize user guides by Diataxis taxonomy with verified examples ([fb1db72](https://github.com/thedavidweng/zenodo-cli/commit/fb1db7269dcc8833b59336d92260c662ee8d8c2c))
+* remove retired Go Report Card badge ([933583d](https://github.com/thedavidweng/zenodo-cli/commit/933583dbf2f5d4eeec4fbef0fa1d5ba70dc8c741))
+
 ## [0.2.0](https://github.com/thedavidweng/zenodo-cli/compare/v0.1.1...v0.2.0) (2026-07-25)
 
 
