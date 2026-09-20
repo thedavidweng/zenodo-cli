@@ -36,3 +36,8 @@ Run `zenodo --help` or `zenodo <command> --help` for full flag details.
 | `ZENODO_CONFIRM` | Set `1` to confirm irreversible operations |
 | `ZENODO_JSON` | Set `1` to emit the JSON envelope |
 | `ZENODO_QUIET` | Set `1` to suppress progress messages |
+
+A profile `token` of the form `env:NAME` is resolved from environment variable
+`NAME` at load time, keeping secrets out of the config file. See
+[authentication](auth.md#secret-indirection-envname) and
+[ADR 0004](adr/0004-secrets-storage.md).
