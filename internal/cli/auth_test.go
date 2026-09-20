@@ -286,6 +286,37 @@ profiles:
 	}
 }
 
+func TestAuthStatusUnsetEnvIndirection(t *testing.T) {
+	cfgDir := t.TempDir()
+	cfgPath := filepath.Join(cfgDir, "config.yaml")
+	cfgContent := `current_profile: test
+profiles:
+  test:
+    token: "env:ZENODO_TEST_MISSING_TOKEN"
+    base_url: https://zenodo.org
+`
+	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0o600); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	origToken, tokenSet := os.LookupEnv("ZENODO_TOKEN")
+	_ = os.Unsetenv("ZENODO_TOKEN")
+	_ = os.Unsetenv("ZENODO_TEST_MISSING_TOKEN")
+	t.Cleanup(func() {
+		if tokenSet {
+			_ = os.Setenv("ZENODO_TOKEN", origToken)
+		}
+	})
+
+	out, err := runCmd(t, cfgPath, authSubcmd("status"), nil, nil, nil)
+	if err == nil {
+		t.Error("expected error when env indirection is unset")
+	}
+	if !strings.Contains(out, "ZENODO_TEST_MISSING_TOKEN") {
+		t.Errorf("expected missing var in output: %s", out)
+	}
+}
+
 func TestAuthLogoutCommand(t *testing.T) {
 	cfgDir := t.TempDir()
 	cfgPath := filepath.Join(cfgDir, "config.yaml")

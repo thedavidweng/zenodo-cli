@@ -146,6 +146,45 @@ profiles:
 	}
 }
 
+func TestDoctorRunUnsetEnvIndirection(t *testing.T) {
+	cfgDir := t.TempDir()
+	cfgPath := filepath.Join(cfgDir, "config.yaml")
+	cfgContent := `current_profile: test
+profiles:
+  test:
+    token: "env:ZENODO_TEST_MISSING_TOKEN"
+    base_url: https://zenodo.org
+`
+	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0o600); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	origToken, tokenSet := os.LookupEnv("ZENODO_TOKEN")
+	_ = os.Unsetenv("ZENODO_TOKEN")
+	_ = os.Unsetenv("ZENODO_TEST_MISSING_TOKEN")
+	t.Cleanup(func() {
+		if tokenSet {
+			_ = os.Setenv("ZENODO_TOKEN", origToken)
+		}
+	})
+
+	app := &AppContext{
+		ConfigFile: cfgPath,
+		Profile:    "test",
+	}
+
+	checks := doctorRun(t.Context(), app)
+	if len(checks) < 3 {
+		t.Fatalf("expected at least 3 checks, got %d", len(checks))
+	}
+	if checks[2].OK {
+		t.Error("token check should fail for unset env indirection")
+	}
+	if !strings.Contains(checks[2].Message, "ZENODO_TEST_MISSING_TOKEN") {
+		t.Errorf("expected missing var in message, got: %s", checks[2].Message)
+	}
+}
+
 func TestDoctorRunMissingProfile(t *testing.T) {
 	cfgDir := t.TempDir()
 	cfgPath := filepath.Join(cfgDir, "config.yaml")
