@@ -43,7 +43,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed architecture.
 
 ## Code Style
 
-- Standard Go formatting (`gofmt`)
+- Standard Go formatting (`gofumpt`)
 - Table-driven tests
 - No CGO dependencies
 - Errors wrapped with `fmt.Errorf("context: %w", err)`

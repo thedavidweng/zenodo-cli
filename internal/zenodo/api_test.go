@@ -29,6 +29,7 @@ func (f *fakeAPI) CreateRecord(ctx context.Context, meta any) (*Record, error) {
 func (f *fakeAPI) GetRecord(ctx context.Context, id string) (*Record, error) {
 	return &Record{}, nil
 }
+
 func (f *fakeAPI) GetDraft(ctx context.Context, id string) (*Record, error) {
 	return &Record{}, nil
 }
@@ -36,18 +37,23 @@ func (f *fakeAPI) DeleteDraft(ctx context.Context, id string) error { return nil
 func (f *fakeAPI) PublishDraft(ctx context.Context, id string) (*Record, error) {
 	return &Record{}, nil
 }
+
 func (f *fakeAPI) NewVersion(ctx context.Context, id string) (*Record, error) {
 	return &Record{}, nil
 }
+
 func (f *fakeAPI) ListVersions(ctx context.Context, id string) (SearchResponse, error) {
 	return SearchResponse{}, nil
 }
+
 func (f *fakeAPI) ReserveDOI(ctx context.Context, id string) (*Record, error) {
 	return &Record{}, nil
 }
+
 func (f *fakeAPI) SubmitToCommunity(ctx context.Context, id, communityID string) error {
 	return nil
 }
+
 func (f *fakeAPI) ListRequests(ctx context.Context, query string) (SearchResponse, error) {
 	return SearchResponse{}, nil
 }
@@ -55,6 +61,7 @@ func (f *fakeAPI) UploadFile(ctx context.Context, id, filePath string) error { r
 func (f *fakeAPI) ListFiles(ctx context.Context, id string) ([]RecordFile, error) {
 	return nil, nil
 }
+
 func (f *fakeAPI) ListPublishedFiles(ctx context.Context, id string) ([]RecordFile, error) {
 	return nil, nil
 }
@@ -62,6 +69,7 @@ func (f *fakeAPI) DeleteFile(ctx context.Context, id, filename string) error { r
 func (f *fakeAPI) DownloadRecord(ctx context.Context, id, destdir string) error {
 	return nil
 }
+
 func (f *fakeAPI) GetFile(ctx context.Context, id, filename string) (*RecordFile, error) {
 	return &RecordFile{}, nil
 }
@@ -69,6 +77,7 @@ func (f *fakeAPI) ImportFiles(ctx context.Context, id string) error { return nil
 func (f *fakeAPI) ResolveLatest(ctx context.Context, id string) (string, error) {
 	return id, nil
 }
+
 func (f *fakeAPI) Do(ctx context.Context, method, path string, body, result any) error {
 	return nil
 }

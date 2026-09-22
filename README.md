@@ -155,7 +155,7 @@ Organized by the [Diátaxis taxonomy](https://diataxis.fr/): tutorials teach, ho
 
 ## Infrastructure
 
-- **CI/CD:** [cli-workflow-template](https://github.com/thedavidweng/cli-workflow-template) — reusable GitHub Actions workflows
+- **CI/CD:** GitHub Actions + [mise](https://mise.jdx.dev/)
 - **Docs:** [site](https://github.com/thedavidweng/site) — landing page and documentation
 
 ## License

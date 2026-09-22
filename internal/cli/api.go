@@ -44,8 +44,10 @@ var apiGetCmd = &cobra.Command{
 	}),
 }
 
-var apiPostCmd = newApiWriteCmd("POST")
-var apiPutCmd = newApiWriteCmd("PUT")
+var (
+	apiPostCmd = newApiWriteCmd("POST")
+	apiPutCmd  = newApiWriteCmd("PUT")
+)
 
 func newApiWriteCmd(method string) *cobra.Command {
 	var example string
