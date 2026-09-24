@@ -8,15 +8,6 @@ import (
 	"github.com/thedavidweng/zenodo-cli/internal/zenodo"
 )
 
-func TestSearchCommandExists(t *testing.T) {
-	if searchCmd.Name() != "search" {
-		t.Errorf("Name = %q, want search", searchCmd.Name())
-	}
-	if searchCmd.RunE == nil {
-		t.Error("search should have RunE")
-	}
-}
-
 // --- Integration tests using FakeZenodo ---
 
 func TestSearchCommandWithQuery(t *testing.T) {
