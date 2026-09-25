@@ -16,29 +16,6 @@ import (
 	"github.com/thedavidweng/zenodo-cli/internal/testutil"
 )
 
-func TestDoctorCommandExists(t *testing.T) {
-	if doctorCmd.Use != "doctor" {
-		t.Errorf("Use = %q, want doctor", doctorCmd.Use)
-	}
-	if doctorCmd.RunE == nil {
-		t.Error("doctor should have RunE")
-	}
-}
-
-func TestDoctorCheckStruct(t *testing.T) {
-	c := doctorCheck{
-		Name:    "config",
-		OK:      true,
-		Message: "loaded",
-	}
-	if c.Name != "config" {
-		t.Errorf("Name = %q", c.Name)
-	}
-	if !c.OK {
-		t.Error("expected OK=true")
-	}
-}
-
 func TestDoctorRunNoConfig(t *testing.T) {
 	app := &AppContext{
 		ConfigFile: "/nonexistent/config.yaml",

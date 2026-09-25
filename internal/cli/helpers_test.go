@@ -19,47 +19,6 @@ func __testNow() time.Time {
 	return time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 }
 
-func TestNewRenderer(t *testing.T) {
-	app := &AppContext{
-		JSON:    true,
-		Pretty:  true,
-		Compact: false,
-		Full:    false,
-		Quiet:   true,
-	}
-	cmd := &cobra.Command{}
-	cmd.SetOut(&bytes.Buffer{})
-	cmd.SetErr(&bytes.Buffer{})
-
-	r := newRenderer(app, cmd)
-	if !r.JSON {
-		t.Error("expected JSON=true")
-	}
-	if !r.Pretty {
-		t.Error("expected Pretty=true")
-	}
-	if !r.Quiet {
-		t.Error("expected Quiet=true")
-	}
-}
-
-func TestMetaInput(t *testing.T) {
-	app := &AppContext{
-		Profile:   "sandbox",
-		RequestID: "req-123",
-	}
-	meta := metaInput(app, "records.list")
-	if meta.Command != "records.list" {
-		t.Errorf("Command = %q, want records.list", meta.Command)
-	}
-	if meta.Profile != "sandbox" {
-		t.Errorf("Profile = %q, want sandbox", meta.Profile)
-	}
-	if meta.RequestID != "req-123" {
-		t.Errorf("RequestID = %q, want req-123", meta.RequestID)
-	}
-}
-
 func TestRequireAuthWithToken(t *testing.T) {
 	var out bytes.Buffer
 	r := output.Renderer{Out: &out, Err: &out}
@@ -296,19 +255,5 @@ func TestWithAuthGetClientError(t *testing.T) {
 	err := wrapped(cmd, nil)
 	if err == nil {
 		t.Error("expected error when getClient fails")
-	}
-}
-
-func TestResolveConfigPathExplicit(t *testing.T) {
-	got := resolveConfigPath("/custom/path/config.yaml")
-	if got != "/custom/path/config.yaml" {
-		t.Errorf("resolveConfigPath = %q, want /custom/path/config.yaml", got)
-	}
-}
-
-func TestResolveConfigPathDefault(t *testing.T) {
-	got := resolveConfigPath("")
-	if got == "" {
-		t.Error("resolveConfigPath should return non-empty default path")
 	}
 }

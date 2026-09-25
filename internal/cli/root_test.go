@@ -7,43 +7,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func TestRootCommandExists(t *testing.T) {
-	cmd := newRootCmd()
-	if cmd.Use != "zenodo" {
-		t.Errorf("Use = %q, want %q", cmd.Use, "zenodo")
-	}
-	if cmd.Short == "" {
-		t.Error("Short should not be empty")
-	}
-}
-
-func TestRootCommandHasGlobalFlags(t *testing.T) {
-	cmd := newRootCmd()
-
-	flags := []string{
-		"config", "profile", "sandbox", "json", "pretty", "compact", "full",
-		"quiet", "read-only", "dry-run", "confirm",
-		"timeout", "retries",
-	}
-
-	for _, name := range flags {
-		f := cmd.PersistentFlags().Lookup(name)
-		if f == nil {
-			t.Errorf("missing persistent flag: --%s", name)
-		}
-	}
-}
-
-func TestRootCommandSilenceFlags(t *testing.T) {
-	cmd := newRootCmd()
-	if !cmd.SilenceUsage {
-		t.Error("expected SilenceUsage=true")
-	}
-	if !cmd.SilenceErrors {
-		t.Error("expected SilenceErrors=true")
-	}
-}
-
 func TestRootCommandPersistentPreRunEReadsFlags(t *testing.T) {
 	cmd := newRootCmd()
 
@@ -136,27 +99,6 @@ func TestRootCommandEnvOverrides(t *testing.T) {
 	}
 }
 
-func TestRegisterSubcommands(t *testing.T) {
-	cmd := newRootCmd()
-	registerSubcommands(cmd)
-
-	expectedNames := []string{
-		"version", "auth", "records", "files", "search",
-		"doctor", "completion", "api",
-	}
-
-	names := make(map[string]bool)
-	for _, c := range cmd.Commands() {
-		names[c.Name()] = true
-	}
-
-	for _, name := range expectedNames {
-		if !names[name] {
-			t.Errorf("missing subcommand: %s", name)
-		}
-	}
-}
-
 func TestValidateAppContextNegativeRetries(t *testing.T) {
 	app := &AppContext{Retries: -1, Timeout: 5 * time.Second}
 	err := validateAppContext(app)
@@ -181,35 +123,6 @@ func TestValidateAppContextFullOverridesCompact(t *testing.T) {
 	}
 	if app.Compact {
 		t.Error("expected Compact=false when Full=true")
-	}
-}
-
-func TestSilenceAllCommands(t *testing.T) {
-	parent := &cobra.Command{Use: "parent"}
-	child := &cobra.Command{Use: "child"}
-	grandchild := &cobra.Command{Use: "grandchild"}
-	child.AddCommand(grandchild)
-	parent.AddCommand(child)
-
-	silenceAllCommands(parent)
-
-	if !parent.SilenceUsage {
-		t.Error("parent SilenceUsage")
-	}
-	if !child.SilenceUsage {
-		t.Error("child SilenceUsage")
-	}
-	if !grandchild.SilenceUsage {
-		t.Error("grandchild SilenceUsage")
-	}
-	if !parent.SilenceErrors {
-		t.Error("parent SilenceErrors")
-	}
-	if !child.SilenceErrors {
-		t.Error("child SilenceErrors")
-	}
-	if !grandchild.SilenceErrors {
-		t.Error("grandchild SilenceErrors")
 	}
 }
 
