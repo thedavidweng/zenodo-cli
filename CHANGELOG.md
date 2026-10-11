@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.3.1](https://github.com/thedavidweng/zenodo-cli/compare/v0.3.0...v0.3.1) (2026-10-11)
+
+
+### Documentation
+
+* refactor agent instructions with progressive disclosure ([#34](https://github.com/thedavidweng/zenodo-cli/issues/34)) ([515430f](https://github.com/thedavidweng/zenodo-cli/commit/515430f0d2bb468cedbb0dc2a3df72ca4c13e0a3))
+
 ## [0.3.0](https://github.com/thedavidweng/zenodo-cli/compare/v0.2.0...v0.3.0) (2026-09-21)
 
 
