@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.3.2](https://github.com/thedavidweng/zenodo-cli/compare/v0.3.1...v0.3.2) (2026-10-17)
+
+
+### Bug Fixes
+
+* **release:** sign and notarize macOS executables ([#36](https://github.com/thedavidweng/zenodo-cli/issues/36)) ([4f4c592](https://github.com/thedavidweng/zenodo-cli/commit/4f4c592ee08c2caa0d3c12269d4eaa73f438c950))
+
 ## [0.3.1](https://github.com/thedavidweng/zenodo-cli/compare/v0.3.0...v0.3.1) (2026-10-11)
 
 
