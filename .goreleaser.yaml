@@ -68,6 +68,7 @@ nfpms:
 
 brews:
   - name: zenodo
+    directory: Formula
     repository:
       owner: thedavidweng
       name: homebrew-tap
