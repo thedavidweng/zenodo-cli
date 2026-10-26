@@ -58,7 +58,7 @@ nfpms:
     vendor: thedavidweng
     maintainer: thedavidweng <noreply@github.com>
     homepage: https://github.com/thedavidweng/zenodo-cli
-    description: "Agent-friendly CLI for Zenodo deposit management, file upload/download, and InvenioRDM API access"
+    description: "CLI for Zenodo deposits, files, and InvenioRDM API access"
     license: Apache-2.0
     formats:
       - deb
@@ -74,13 +74,13 @@ brews:
       name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
     homepage: "https://github.com/thedavidweng/zenodo-cli"
-    description: "Agent-friendly CLI for Zenodo deposit management, file upload/download, and InvenioRDM API access"
+    description: "CLI for Zenodo deposits, files, and InvenioRDM API access"
     license: "Apache-2.0"
     install: |
       bin.install "zenodo"
       generate_completions_from_executable(bin/"zenodo", "completion")
     test: |
-      system "#{bin}/zenodo", "version"
+      assert_match version.to_s, shell_output("#{bin}/zenodo version")
 
 snapshot:
   version_template: "{{ incpatch .Version }}-next"
