@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.3.4](https://github.com/thedavidweng/zenodo-cli/compare/v0.3.3...v0.3.4) (2026-10-26)
+
+
+### Bug Fixes
+
+* **homebrew:** generate concise formula metadata and version test ([#44](https://github.com/thedavidweng/zenodo-cli/issues/44)) ([45eacba](https://github.com/thedavidweng/zenodo-cli/commit/45eacbabc5ebbb0d555a83afdc771d991038b1a3))
+
 ## [0.3.3](https://github.com/thedavidweng/zenodo-cli/compare/v0.3.2...v0.3.3) (2026-10-25)
 
 
