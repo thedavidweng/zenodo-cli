@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"maps"
+
 	"github.com/thedavidweng/zenodo-cli/internal/model"
 	"github.com/thedavidweng/zenodo-cli/internal/output"
 )
@@ -49,9 +51,7 @@ func (g *Gate) Allow(tier RiskTier, plan Plan) (bool, error) {
 		if plan.Action != "" {
 			data["action"] = plan.Action
 		}
-		for k, v := range plan.Data {
-			data[k] = v
-		}
+		maps.Copy(data, plan.Data)
 		return false, g.r.Success(g.meta, data, nil)
 	}
 
