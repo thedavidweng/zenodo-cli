@@ -7,3 +7,5 @@ Context: Help-text, flag-default, envelope-shape, and fake-helper self-tests ass
 Decision: E2E is default. FakeZenodo integration plus file roundtrips are the artifact tests. Isolated tests remain only for file permissions, secret indirection, XDG paths, retry parsing, fuzz parsers, auth and read-only gates, and error mapping with exact codes. Coverage informational: patch 80 to 50, threshold 2 to 5, output package excluded.
 
 Consequences: Deleted context, completion, version, api-seal, example, renderer, errors-mirror, and fake self-tests. Exit-code table retained.
+
+2026-10-28: Removed the configuration fuzz test because it exercised the YAML library directly, not the configuration loader. Fuzz tests for the custom record decoder remain.
