@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.3.5](https://github.com/thedavidweng/zenodo-cli/compare/v0.3.4...v0.3.5) (2026-11-10)
+
+
+### Bug Fixes
+
+* **ci:** verify Codecov uploader before execution ([#52](https://github.com/thedavidweng/zenodo-cli/issues/52)) ([138ec7d](https://github.com/thedavidweng/zenodo-cli/commit/138ec7d93a66e570cdd7ba465a1c64e786ba2783))
+* upload Go coverage to Codecov ([#49](https://github.com/thedavidweng/zenodo-cli/issues/49)) ([9f67a20](https://github.com/thedavidweng/zenodo-cli/commit/9f67a20ac5f537f0ee482844cb7f3ff7a15a5006))
+
 ## [0.3.4](https://github.com/thedavidweng/zenodo-cli/compare/v0.3.3...v0.3.4) (2026-10-26)
 
 
